@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Healer Forever Minimap Pins</title>
+<style>
+:root{--gold:#ffd100;--muted:#9a927e}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font-family:"Friz Quadrata TT",Georgia,"Times New Roman",serif;color:#e8e2d0;background:radial-gradient(ellipse at 30% 70%,#3b4a2a 0%,#1f2a18 35%,#0d120b 70%),#0d120b;padding:16px}
+a{color:var(--gold)}
+h1{margin:0 0 4px;font-size:20px;color:var(--gold);font-weight:normal;text-shadow:1px 1px 1px #000}
+.sub{font-size:12px;color:#ffffffa0;margin-bottom:12px}
+.panel{background:#000000c8;border:2px solid #8a8a94;border-radius:4px;padding:10px 12px;margin:10px 0}
+.panel h3{margin:0 0 6px;font-size:14px;color:var(--gold);font-weight:normal}
+.path{font-size:11px;color:var(--muted);margin-bottom:8px}
+.pg{display:grid;gap:8px 18px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.pg .r{display:flex;align-items:center;gap:8px;justify-content:space-between;font-size:12px}
+.pg .r>label:first-child{min-width:140px}
+.pg input[type=range]{accent-color:#d8a83a;width:110px}
+.pg .v{min-width:20px;text-align:right;color:var(--gold);font-size:11px}
+select{background:#000;color:#e8e2d0;border:2px solid #6a6a74;border-radius:3px;padding:2px 5px;font:12px Georgia,serif}
+input[type=checkbox]{accent-color:#d8a83a;width:15px;height:15px}
+.cards{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(290px,1fr))}
+.card{background:#000000a0;border:2px solid #6a6a74;border-radius:4px;padding:12px;cursor:pointer}
+.card.sel{border-color:var(--gold);box-shadow:0 0 8px #ffd10066}
+.card h2{margin:0 0 2px;font-size:16px;color:var(--gold);font-weight:normal;display:flex;justify-content:space-between}
+.card .tag{font-size:10px;color:#000;background:var(--gold);border-radius:3px;padding:0 6px;display:none;align-self:center}
+.card.sel .tag{display:block}
+.card .desc{font-size:12px;color:var(--muted);margin-bottom:14px}
+.stage{display:grid;place-items:center;padding:26px 0 18px}
+.cap{margin-top:10px;font-size:11px;color:var(--muted);line-height:1.5;border-top:1px solid #3a3a42;padding-top:6px}
+.cap code{color:#cfc7aa;font:11px ui-monospace,Menlo,monospace}
+.legend{font-size:11px;color:var(--muted);margin-top:10px;display:flex;gap:12px;flex-wrap:wrap}
+
+/* minimap */
+.mm{position:relative;width:200px;height:200px}
+.zone{position:absolute;left:50%;top:-24px;transform:translateX(-50%);padding:1px 12px;font-size:11px;color:var(--gold);text-shadow:1px 1px 1px #000;background:#000000b0;border:1px solid #6a5a2a;border-radius:3px;white-space:nowrap;z-index:6}
+.terrain{position:absolute;inset:0;border-radius:50%;overflow:hidden;
+ background:
+  radial-gradient(ellipse 60px 34px at 150px 150px,#1d3a4a,#16303d 60%,transparent 62%),
+  linear-gradient(115deg,transparent 46%,#6a5836aa 47% 50%,transparent 51%),
+  linear-gradient(20deg,transparent 58%,#5a4a2caa 59% 61%,transparent 62%),
+  radial-gradient(circle at 30% 30%,#3d5228 0 30px,transparent 31px),
+  radial-gradient(circle at 75% 25%,#2d4020 0 26px,transparent 27px),
+  repeating-radial-gradient(circle at 50% 50%,#ffffff05 0 3px,#00000008 3px 6px),
+  radial-gradient(circle at 40% 40%,#3a4c28,#26361a 55%,#141d0e);
+ box-shadow:inset 0 0 18px #000c}
+.ringb{position:absolute;inset:-11px;border-radius:50%;pointer-events:none;z-index:4;
+ background:conic-gradient(from 20deg,#ffe58a,#a8801c,#fff0a8,#7a5a14,#ffe58a);
+ -webkit-mask:radial-gradient(circle,transparent 0 99px,#000 100px 109px,transparent 110px);mask:radial-gradient(circle,transparent 0 99px,#000 100px 109px,transparent 110px);
+ filter:drop-shadow(0 0 1px #000)}
+.ringb2{position:absolute;inset:-12px;border-radius:50%;pointer-events:none;z-index:3;box-shadow:0 0 0 1px #000,inset 0 0 0 1px #000,0 4px 14px #000a}
+.me{position:absolute;left:50%;top:50%;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:15px solid #fff;transform:translate(-50%,-55%);filter:drop-shadow(0 0 1px #000) drop-shadow(0 0 2px #000);z-index:2}
+.poi{position:absolute;width:7px;height:7px;border-radius:50%;background:radial-gradient(circle,#fff0a0,#d8a010);border:1px solid #000;z-index:1}
+.combat{position:absolute;left:50%;bottom:-26px;transform:translateX(-50%);font-size:11px;color:#ff5050;text-shadow:1px 1px 0 #000;z-index:6;white-space:nowrap}
+.pins{position:absolute;inset:0;z-index:5}
+.pin{position:absolute;width:0;height:0}
+.pin>*{position:absolute;transform:translate(-50%,-50%)}
+.pin:hover{z-index:9}
+.hit{width:calc(var(--sz) + 8px);height:calc(var(--sz) + 8px);border-radius:50%;cursor:default;left:0;top:0}
+.cb{left:calc(var(--sz)*.45)!important;top:calc(var(--sz)*-.45)!important;font-size:9px;color:#ff4040;text-shadow:-1px -1px 0 #000,1px 1px 0 #000;pointer-events:none;line-height:1}
+@keyframes pulse{0%{transform:translate(-50%,-50%) scale(.8);opacity:.9}100%{transform:translate(-50%,-50%) scale(2);opacity:0}}
+.pulse{width:var(--sz);height:var(--sz);border-radius:50%;border:2px solid #ff2a2a;animation:pulse 1s infinite;pointer-events:none}
+.pulse.off{display:none}
+
+/* A orbs */
+.orb{width:var(--sz);height:var(--sz);border-radius:50%;background:radial-gradient(circle at 35% 28%,color-mix(in srgb,var(--c),#fff 70%),var(--c) 45%,color-mix(in srgb,var(--c),#000 55%));border:1.5px solid #000;box-shadow:0 0 0 1px #00000080,inset 0 -2px 3px #0006;display:grid;place-items:center;font-size:calc(var(--sz)*.55);color:#fff;text-shadow:0 0 2px #000,1px 1px 0 #000;pointer-events:none;line-height:1}
+.orb.dead{background:radial-gradient(circle at 35% 28%,#c8c8c8,#7a7a7a 50%,#3a3a3a);color:#ff3030}
+/* B discs */
+.disc{width:var(--sz);height:var(--sz);border-radius:50%;background:radial-gradient(circle at 40% 30%,#3a3a48,#14141c);border:2px solid var(--c);box-shadow:0 0 0 1px #000,inset 0 0 3px #000;display:grid;place-items:center;font-size:calc(var(--sz)*.5);font-weight:bold;color:var(--c);text-shadow:1px 1px 0 #000;pointer-events:none;line-height:1}
+.disc.dead{border-color:#777;color:#aaa;filter:grayscale(1)}
+/* C arrows */
+.arw{width:var(--sz);height:var(--sz);background:var(--c);clip-path:polygon(50% 0,92% 100%,50% 76%,8% 100%);filter:drop-shadow(0 0 1px #000);pointer-events:none;transform:translate(-50%,-50%) rotate(var(--rot,0deg))}
+.arwo{width:var(--sz);height:var(--sz);background:#000;clip-path:polygon(50% -12%,100% 108%,50% 80%,0 108%);pointer-events:none;transform:translate(-50%,-50%) rotate(var(--rot,0deg))}
+.arx{font-size:calc(var(--sz)*.9);color:#bbb;text-shadow:-1px -1px 0 #000,1px 1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000;pointer-events:none;line-height:1}
+/* D dots */
+.dot{width:var(--sz);height:var(--sz);border-radius:50%;background:var(--c);border:1px solid #000;box-shadow:0 0 6px 2px color-mix(in srgb,var(--c),transparent 40%);pointer-events:none;display:grid;place-items:center;font-size:calc(var(--sz)*.7);line-height:1;color:#ff3030;font-weight:bold}
+.dot.dead{background:#2a2a2a;box-shadow:0 0 4px #000}
+.glyph{font-size:calc(var(--sz)*.45);position:absolute;pointer-events:none}
+/* edge pointer */
+.edge{width:calc(var(--sz)*.9);height:calc(var(--sz)*.9);background:var(--c);clip-path:polygon(50% 0,100% 100%,50% 70%,0 100%);filter:drop-shadow(0 0 1px #000) drop-shadow(0 0 1px #000);pointer-events:none;transform:translate(-50%,-50%) rotate(var(--rot,0deg))}
+.edgeo{width:calc(var(--sz)*.9 + 4px);height:calc(var(--sz)*.9 + 4px);background:#000;clip-path:polygon(50% -8%,106% 106%,50% 76%,-6% 106%);pointer-events:none;transform:translate(-50%,-50%) rotate(var(--rot,0deg))}
+.tt{position:fixed;z-index:50;display:none;pointer-events:none;background:linear-gradient(#0c0c1ef2,#05050ff5);border:2px solid #7a7a98;border-radius:6px;box-shadow:0 0 0 1px #000;padding:5px 9px;font-size:12px;line-height:1.45;white-space:nowrap}
+</style>
+</head>
+<body>
+<h1>Healer Forever minimap pins</h1>
+<div class="sub">Four pin designs on the same party. Hover a pin for its tooltip. Click a card to choose it as the pin style. <a href="index.html">Back to the main mockup</a></div>
+
+<div class="panel" id="panel">
+  <h3>Options &gt; Minimap &gt; Party pins</h3>
+  <div class="path">Each control maps 1:1 to a future addon option. Size, role glyph, names, pets, edge pointers and low-HP pulse apply to all four previews.</div>
+  <div class="pg">
+    <div class="r"><label>Pin style</label><select data-k="style"><option value="A">A. Class orbs</option><option value="B">B. Raid icons style</option><option value="C">C. Arrows</option><option value="D">D. Minimal dots plus</option></select></div>
+    <div class="r"><label>Pin size</label><input type="range" data-k="size" min="10" max="28"><span class="v" data-v="size"></span></div>
+    <div class="r"><label>Show role glyph</label><input type="checkbox" data-k="role"></div>
+    <div class="r"><label>Show names on hover</label><input type="checkbox" data-k="tip"></div>
+    <div class="r"><label>Show pets</label><input type="checkbox" data-k="pets"></div>
+    <div class="r"><label>Edge pointers (out of range)</label><input type="checkbox" data-k="edge"></div>
+    <div class="r"><label>Low-HP pulse</label><input type="checkbox" data-k="pulse"></div>
+  </div>
+</div>
+
+<div class="cards" id="cards"></div>
+
+<div class="legend">
+  <span>Sample party:</span><span>Garrosh (Warrior, tank, in combat)</span><span>Jaina (Mage, low HP, in combat)</span><span>Rexxar (Hunter) + Misha (pet)</span><span>Anduin (Priest, dead)</span><span>Gul'dan (Warlock) is out of range, shown as an edge pointer</span><span>You are the centre arrow (Paladin)</span>
+</div>
+<div class="tt" id="tt"></div>
+
+<script>
+const CC={Warrior:'#C69B6D',Paladin:'#F48CBA',Hunter:'#AAD372',Mage:'#3FC7EB',Warlock:'#8788EE',Priest:'#FFFFFF'};
+const ROLE={T:'🛡',H:'✚',D:'⚔'};
+const ICON={Warrior:'W',Paladin:'Pa',Hunter:'H',Mage:'M',Warlock:'Wl',Priest:'Pr'};
+const M=[
+ {n:'Garrosh',cls:'Warrior',role:'T',hp:62,x:6,y:-20,face:200,combat:true},
+ {n:'Jaina',cls:'Mage',role:'D',hp:18,x:-26,y:8,face:70,combat:true},
+ {n:'Rexxar',cls:'Hunter',role:'D',hp:88,x:18,y:26,face:310},
+ {n:'Misha',cls:'Hunter',role:'D',hp:70,x:26,y:32,face:300,pet:true,owner:'Rexxar'},
+ {n:'Anduin',cls:'Priest',role:'H',hp:0,x:-30,y:-22,dead:true},
+ {n:"Gul'dan",cls:'Warlock',role:'D',hp:55,x:64,y:-44,face:120},
+];
+const PPY=2.2, RANGE=44, RIM=94;
+const O={style:'A',size:16,role:true,tip:true,pets:true,edge:true,pulse:true};
+const STY={
+ A:{t:'A. Class orbs',d:'Glossy class-coloured spheres with a dark rim and a role glyph inside. Dead is a grey orb with a red X.',cap:'<code>Interface\\Minimap\\PartyRaidBlips</code> (round party blip) tinted with <code>RAID_CLASS_COLORS</code>, gloss overlay on a second texture, role glyph cropped from <code>Interface\\LFGFrame\\UI-LFG-ICON-PORTRAITROLES</code>. Dead: desaturated blip + <code>Interface\\Buttons\\UI-GroupLoot-Pass-Up</code> (red X). Edge pointer: <code>Interface\\Minimap\\ROTATING-MINIMAPGUIDEARROW</code>. Ring: <code>Interface\\Minimap\\UI-Minimap-Border</code>.'},
+ B:{t:'B. Raid icons style',d:'Round portrait-like discs with the class icon and a thin class-colour ring.',cap:'Class icon sheet <code>Interface\\GLUES\\CHARACTERCREATE\\UI-CHARACTERCREATE-CLASSES</code> with <code>CLASS_ICON_TCOORDS</code> (letters here), circular mask <code>Interface\\CharacterFrame\\TempPortraitAlphaMask</code>, ring <code>Interface\\Common\\RingBorder</code> tinted by class. Dead: desaturate + <code>Interface\\TargetingFrame\\UI-TargetingFrame-Skull</code>. Edge pointer: <code>ROTATING-MINIMAPGUIDEARROW</code>.'},
+ C:{t:'C. Arrows',d:'Class-coloured arrows in the style of the player arrow, smaller. Rotated to each member\'s facing.',cap:'<code>Interface\\Minimap\\MinimapArrow</code> (player arrow texture) tinted per class and scaled, rotated with <code>Texture:SetRotation()</code>. Note: Blizzard does not expose other units\' facing to addons. Real arrows would have to point along the member\'s movement direction (position delta between updates) or toward the player. Dead: <code>UI-GroupLoot-Pass-Up</code> cross. Edge pointer: <code>ROTATING-MINIMAPGUIDEARROW</code>.'},
+ D:{t:'D. Minimal dots plus',d:'Clean dots with a 1px black outline and soft glow, tank slightly bigger, pulsing red ring for low HP.',cap:'<code>Interface\\Minimap\\PartyRaidBlips</code> or <code>Interface\\Buttons\\WHITE8X8</code> with a round mask, glow <code>Interface\\Cooldown\\star4</code> (ADD blend), pulse ring <code>Interface\\Cooldown\\ping4</code> animated with an AnimationGroup (alpha + scale). Dead: <code>UI-GroupLoot-Pass-Up</code> on a dark dot. Edge pointer: <code>ROTATING-MINIMAPGUIDEARROW</code>.'}
+};
+const pol=(a)=>({x:Math.sin(a),y:-Math.cos(a)});
+function pin(k,m){
+  const dist=Math.hypot(m.x,m.y), out=dist>RANGE, c=CC[m.cls];
+  const sz=O.size*(m.pet?.72:1)*(k==='D'&&m.role==='T'?1.3:1);
+  const low=m.hp>0&&m.hp<30&&!m.dead;
+  let px=m.x*PPY, py=m.y*PPY, rot=0;
+  if(out){if(!O.edge)return '';const ang=Math.atan2(m.x,-m.y);px=Math.sin(ang)*RIM;py=-Math.cos(ang)*RIM;rot=ang*180/Math.PI}
+  const L=100+px,T=100+py,dead=!!m.dead;
+  const tip=`data-n="${m.n}" data-c="${c}" data-cls="${m.cls}${m.pet?' pet':''}" data-r="${m.role}" data-hp="${m.hp}" data-d="${Math.round(dist)}" data-dead="${dead?1:0}" data-cb="${m.combat?1:0}" data-pet="${m.pet?1:0}"`;
+  let body='';
+  if(out){body=`<div class="edgeo" style="--sz:${sz}px;--rot:${rot}deg"></div><div class="edge" style="--sz:${sz}px;--rot:${rot}deg;--c:${c}"></div>`}
+  else if(k==='A'){body=`<div class="orb ${dead?'dead':''}" style="--sz:${sz}px;--c:${c}">${dead?'✕':(O.role&&!m.pet?ROLE[m.role]:'')}</div>`}
+  else if(k==='B'){body=`<div class="disc ${dead?'dead':''}" style="--sz:${sz}px;--c:${c}">${dead?'💀':m.pet?'🐾':ICON[m.cls]}${!dead&&O.role&&!m.pet?`<span class="glyph" style="left:78%;top:78%;transform:translate(-50%,-50%);color:#fff;text-shadow:0 0 2px #000,1px 1px 0 #000">${ROLE[m.role]}</span>`:''}</div>`}
+  else if(k==='C'){body=dead?`<div class="arx" style="--sz:${sz}px">✕</div>`:`<div class="arwo" style="--sz:${sz}px;--rot:${m.face}deg"></div><div class="arw" style="--sz:${sz}px;--c:${c};--rot:${m.face}deg"></div>`}
+  else{body=`<div class="dot ${dead?'dead':''}" style="--sz:${sz}px;--c:${c}">${dead?'✕':''}</div>`}
+  const pulse=(O.pulse&&low&&!out)?`<div class="pulse" style="--sz:${sz*1.1}px"></div>`:'';
+  const cb=(m.combat&&!out&&!dead)?`<div class="cb" style="--sz:${sz}px">⚔</div>`:'';
+  return `<div class="pin" style="left:${L}px;top:${T}px;--sz:${sz}px" ${tip}>${pulse}${body}${cb}<div class="hit" style="--sz:${sz}px"></div></div>`;
+}
+function mm(k){
+  const poi=[[40,150],[160,52],[120,168]].map(([x,y])=>`<div class="poi" style="left:${x}px;top:${y}px"></div>`).join('');
+  const pins=M.filter(m=>O.pets||!m.pet).map(m=>pin(k,m)).join('');
+  return `<div class="mm"><div class="zone">Elwynn Forest</div><div class="terrain">${poi}</div><div class="ringb2"></div><div class="ringb"></div><div class="me"></div><div class="pins">${pins}</div><div class="combat">⚔ In combat</div></div>`;
+}
+function draw(){
+  document.getElementById('cards').innerHTML=['A','B','C','D'].map(k=>`<div class="card ${O.style===k?'sel':''}" data-s="${k}"><h2><span>${STY[k].t}</span><span class="tag">selected</span></h2><div class="desc">${STY[k].d}</div><div class="stage">${mm(k)}</div><div class="cap"><b>Textures:</b> ${STY[k].cap}</div></div>`).join('');
+}
+const P=document.getElementById('panel');
+function sync(){P.querySelectorAll('[data-k]').forEach(el=>{const v=O[el.dataset.k];if(el.type==='checkbox')el.checked=v;else el.value=v});P.querySelectorAll('[data-v]').forEach(el=>el.textContent=O[el.dataset.v])}
+P.addEventListener('input',e=>{const k=e.target.dataset.k;if(!k)return;O[k]=e.target.type==='checkbox'?e.target.checked:e.target.type==='range'?+e.target.value:e.target.value;sync();draw()});
+document.getElementById('cards').addEventListener('click',e=>{const c=e.target.closest('.card');if(!c)return;O.style=c.dataset.s;sync();draw()});
+const tt=document.getElementById('tt');
+document.addEventListener('mousemove',e=>{
+  const el=e.target instanceof Element?e.target:null;const p=el&&el.closest('.pin');
+  if(!p||!O.tip){tt.style.display='none';return}
+  const d=p.dataset,dead=d.dead==='1',hp=+d.hp;
+  const hpc=dead?'#aaa':hp<30?'#ff5050':hp<60?'#ffd100':'#4cff6a';
+  tt.innerHTML=`<div style="color:${d.c};font-size:13px">${d.n}</div><div style="color:#ccc">${d.cls} · ${ {T:'Tank',H:'Healer',D:'DPS'}[d.r] }</div><div>${dead?'<span style="color:#aaa">Dead</span>':`Health: <span style="color:${hpc}">${hp}%</span>`}</div><div style="color:#9a927e">Distance: ${d.d} yd${+d.d>44?' (out of range)':''}</div>${d.cb==='1'?'<div style="color:#ff5050">In combat</div>':''}`;
+  tt.style.display='block';tt.style.left=Math.min(e.clientX+14,innerWidth-190)+'px';tt.style.top=(e.clientY+14)+'px';
+});
+sync();draw();
+</script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+## Interface: 16001, 120005
+## Title: Healer Forever
+## Notes: Party healing frames with click-casting, buff presets, resurrection on click and minimap pins for WoW Forever.
+## Author: trtg
+## Version: @project-version@
+## SavedVariables: HealerForeverDB
+## SavedVariablesPerCharacter: HealerForeverCharDB
+## X-License: All Rights Reserved
+## IconTexture: Interface\Icons\Spell_Holy_FlashHeal
+
+Util\Util.lua
+Data\Classes.lua
+Buffs\Presets.lua
+ClickCast\Bindings.lua
+Core.lua
+Buffs\Roles.lua
+Data\Spells.lua
+
+Frames\Auras.xml
+Frames\Auras.lua
+Frames\UnitFrames.lua
+ClickCast\ClickCast.lua
+Buffs\BuffButtons.lua
+Options\Widgets.lua
+Options\Window.lua
+Options\Panes.lua
+Options\MinimapPane.lua
+Options\BuffPresetsPane.lua
+Options\SpellsPane.lua
+Options\BindingsPane.lua
+Options\CopyWindow.lua
+Options\Report.lua
+Options\ContactPane.lua
+Options\Slash.lua
+Minimap\MinimapButton.lua
+Minimap\MinimapPins.lua

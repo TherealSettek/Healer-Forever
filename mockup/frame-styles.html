@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Healer Forever Frame Styles</title>
+<style>
+:root{--gold:#ffd100;--muted:#9a927e;--magic:#3c8cff;--curse:#a43cff;--poison:#2fb84a;--disease:#b07a30;--phys:#e04040;--heal:#7dff9b}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font-family:"Friz Quadrata TT",Georgia,"Times New Roman",serif;color:#e8e2d0;background:radial-gradient(ellipse at 30% 70%,#3b4a2a 0%,#1f2a18 35%,#0d120b 70%),#0d120b;padding:16px}
+a{color:var(--gold)}
+h1{margin:0 0 4px;font-size:20px;color:var(--gold);font-weight:normal;text-shadow:1px 1px 1px #000}
+.sub{font-size:12px;color:#ffffffa0;margin-bottom:12px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0;padding:8px 12px;background:#000000c0;border:2px solid #8a8a94;border-radius:4px}
+.bar b{color:var(--gold);font-weight:normal}
+.btn{font:12px Georgia,serif;color:var(--gold);background:linear-gradient(#b02a2a,#6a1010 50%,#3a0606);border:1px solid #000;border-radius:4px;padding:5px 14px;cursor:pointer;box-shadow:inset 0 0 0 1px #d8a0a055}
+.btn.off{background:linear-gradient(#3a3a40,#1a1a1e);color:#ccc}
+.bar label,.panel label{font-size:12px;display:flex;gap:5px;align-items:center}
+select,input[type=text]{background:#000;color:#e8e2d0;border:2px solid #6a6a74;border-radius:3px;padding:2px 5px;font:12px Georgia,serif}
+input[type=range]{accent-color:#d8a83a;width:120px}
+.panel{background:#000000c8;border:2px solid #8a8a94;border-radius:4px;padding:10px 12px;margin:10px 0}
+.panel h3{margin:0 0 6px;font-size:14px;color:var(--gold);font-weight:normal}
+.panel .path{font-size:11px;color:var(--muted);margin-bottom:8px}
+.pg{display:grid;gap:8px 18px;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));margin-bottom:6px}
+.pg .r{display:flex;align-items:center;gap:8px;justify-content:space-between}
+.pg .r>label:first-child{min-width:150px;flex:none}.pg input[type=range]{width:110px;flex:none}
+.pg .r .v{min-width:22px;text-align:right;color:var(--gold);font-size:11px}
+.sec{font-size:12px;color:var(--gold);border-bottom:1px solid #4a4a52;margin:8px 0 6px;padding-bottom:2px}
+.cols{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));align-items:start}
+.col{background:#000000a0;border:2px solid #6a6a74;border-radius:4px;padding:12px;min-width:0}
+.col h2{margin:0 0 2px;font-size:16px;color:var(--gold);font-weight:normal}
+.col .desc{font-size:12px;color:var(--muted);margin-bottom:10px}
+.cap{margin-top:10px;font-size:11px;color:var(--muted);line-height:1.5;border-top:1px solid #3a3a42;padding-top:6px}
+.cap code{color:#cfc7aa;font:11px ui-monospace,Menlo,monospace}
+.party{display:flex;flex-direction:column;gap:var(--sp,6px);width:fit-content;max-width:100%}
+.party.compact{flex-direction:row;flex-wrap:wrap;align-items:flex-start}
+.party.gb{border:2px solid #8a8a94;box-shadow:0 0 0 1px #000;padding:6px;background:#000000a0}
+.legend{font-size:11px;color:var(--muted);margin-top:10px;display:flex;gap:10px;flex-wrap:wrap}
+
+/* unit = aura zones + frame */
+.unit{display:flex;flex-direction:column;gap:2px;width:fit-content;max-width:100%}
+.mid{display:flex;gap:3px;align-items:center}
+.z{display:flex;gap:4px;flex-wrap:wrap}
+.zl,.zr{flex-direction:column;flex-wrap:nowrap;align-items:flex-start}
+.ag{display:flex;gap:2px;flex-wrap:wrap;padding:2px;border-radius:2px;align-content:flex-start}
+.ag.bf{background:#ffffff10;border:1px solid #ffffff22}
+.ag.db{background:#6a0a0a66;border:1px solid #b03030;box-shadow:inset 0 0 6px #ff000033}
+.ag.empty{display:none}
+.oor{opacity:.45}
+.fr{position:relative;user-select:none;cursor:pointer;background:rgba(0,0,0,var(--bga,.8));padding:var(--pad,2px);border:0}
+.fr:hover{outline:1px solid #fff;outline-offset:1px;filter:brightness(1.2)}
+.tgt .fr{outline:2px solid var(--gold);outline-offset:1px;filter:drop-shadow(0 0 5px var(--gold))}
+.aggro .fr{filter:drop-shadow(0 0 6px #ff3030)}
+.tgt.aggro .fr{filter:drop-shadow(0 0 5px var(--gold)) drop-shadow(0 0 5px #ff3030)}
+.fr.dispb::after{content:"";position:absolute;inset:-3px;border:2px solid var(--dispc);pointer-events:none;z-index:4}
+@keyframes lowpulse{0%,100%{opacity:0}50%{opacity:.55}}
+.lowfx{display:none;position:absolute;inset:0;background:#ff1a1a;mix-blend-mode:screen;animation:lowpulse 1s infinite;pointer-events:none;z-index:2}
+.low .lowfx{display:block}
+.fill,.pred,.over{position:absolute;top:0;bottom:0}
+.fill{left:0;background-image:var(--tex);transition:width .3s}
+.pred{background:var(--heal);opacity:.6}
+.over{background:repeating-linear-gradient(45deg,#c8ffd6cc 0 3px,#2f9e4acc 3px 6px);border-left:1px solid #fff}
+.pw{position:relative;background:#000}
+.pw i{position:absolute;left:0;top:0;bottom:0;background-image:var(--tex)}
+.ico{position:relative;width:var(--ic,18px);height:var(--ic,18px);display:grid;place-items:center;font-size:calc(var(--ic,18px)*.5);font-weight:bold;color:#fff;border:1px solid #000;flex:none}
+.ico .tm{position:absolute;bottom:-1px;left:0;right:0;text-align:center;font-size:calc(var(--ic,18px)*.42);line-height:1;text-shadow:0 0 2px #000,1px 1px 0 #000}
+.ico.short .tm{color:#ff6060}
+.ico.disp{box-shadow:0 0 5px 1px var(--dc)}
+.in{position:absolute;display:flex;gap:1px;z-index:2}
+.in.b{right:2px;top:2px}.in.d{right:2px;bottom:2px}
+.deadfx{display:none;position:absolute;inset:0;z-index:3;align-items:center;justify-content:center;background:#10101099;font-weight:bold;letter-spacing:2px;color:#d04040;text-shadow:-1px -1px 0 #000,1px 1px 0 #000;pointer-events:none}
+.dead .deadfx{display:flex}
+.dead .fill,.dead .pred,.dead .over{display:none}
+.dead .z,.dead .in{opacity:.35;filter:grayscale(1)}
+.tt{position:absolute;z-index:9;display:none;pointer-events:none;background:linear-gradient(#0c0c1ef2,#05050ff5);border:2px solid #7a7a98;border-radius:6px;padding:4px 8px;font-size:11px;white-space:nowrap}
+
+/* A: Vanilla Polished */
+.sA .fr{width:270px}
+.sA .hp{position:relative;height:28px;background:#2a0d0d;box-shadow:inset 0 0 0 1px #000;overflow:hidden}
+.sA .fill{background-color:var(--cc)}
+.sA .nm{position:absolute;left:5px;top:50%;transform:translateY(-50%);font-size:12px;color:#fff;text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;z-index:1;white-space:nowrap}
+.sA .vl{position:absolute;right:5px;top:50%;transform:translateY(-50%);font-size:11px;color:#fff;text-shadow:1px 1px 1px #000,0 0 2px #000;z-index:1}
+.sA .pw{height:5px;margin-top:1px;box-shadow:inset 0 0 0 1px #000}
+.sA.pet .fr{width:190px}.sA.pet .hp{height:16px}.sA.pet{margin-left:24px}
+/* B: Clean Healer */
+.sB .fr{width:270px;padding-left:calc(var(--pad,2px) + 4px)}
+.sB .fr::before{content:"";position:absolute;left:var(--pad,0);top:var(--pad,0);bottom:var(--pad,0);width:4px;background:var(--cc);z-index:1;transform:translateX(calc(-4px - 0px))}
+.sB .hp{position:relative;height:34px;background:#1c1c1c;overflow:hidden}
+.sB .fill{background-color:var(--cc);opacity:.85}
+.sB .nm{position:absolute;left:6px;top:2px;font-size:11px;color:#fff;text-shadow:1px 1px 0 #000;z-index:1;white-space:nowrap}
+.sB .vl{position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:17px;font-weight:bold;color:#fff;text-shadow:1px 1px 0 #000,0 0 3px #000;z-index:1}
+.sB .vl.full{font-size:11px;font-weight:normal;color:#ffffffa0}
+.sB .pw{height:3px}
+.sB.pet .fr{width:190px}.sB.pet .hp{height:20px}.sB.pet{margin-left:24px}
+/* C: Compact Raid-like, Blizzard raid frame look */
+.sC{font-family:"Friz Quadrata TT",Georgia,"Times New Roman",serif}
+.sC .fr{width:126px;background:rgba(14,12,18,var(--bga,.85))}
+.sC .fr:hover{outline:none;filter:none}
+.sC .hp{position:relative;height:40px;background:linear-gradient(#241a1a,#140e0e);box-shadow:0 0 0 1px #000;overflow:hidden}
+.sC .hp::after{content:"";position:absolute;inset:0;background:#fff;opacity:0;mix-blend-mode:screen;pointer-events:none;z-index:3}
+.sC .fr:hover .hp::after{opacity:.2}
+.sC .fill{background-color:var(--cc)}
+.sC .ri{position:absolute;left:3px;top:3px;width:16px;height:16px;border-radius:50%;display:grid;place-items:center;font-size:8px;z-index:2;color:#fff;border:1px solid #d8b848;box-shadow:0 0 0 1px #000,inset 0 0 3px #000a}
+.sC .ri.T{background:radial-gradient(circle at 40% 35%,#6a9aff,#1a3a8a)}
+.sC .ri.H{background:radial-gradient(circle at 40% 35%,#7dff9b,#127a2a)}
+.sC .ri.D{background:radial-gradient(circle at 40% 35%,#ff8a7a,#8a1a1a)}
+.sC .nm{position:absolute;left:0;right:0;top:11px;text-align:center;font-size:12px;color:#fff;text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000,2px 2px 2px #000;z-index:1;white-space:nowrap;overflow:hidden;padding:0 18px}
+.sC .vl{position:absolute;left:0;right:0;top:27px;text-align:center;font-size:12px;color:#fff;text-shadow:-1px 0 #000,1px 0 #000,0 1px #000,0 -1px #000;z-index:1}
+.sC .pw{height:4px;background:#000;box-shadow:0 0 0 1px #000;margin-top:2px}
+.sC .ag{background:none!important;border:0!important;box-shadow:none!important;padding:0 0 13px;gap:2px 8px;justify-content:flex-start;width:100%}
+.sC .ag.empty{display:flex;visibility:hidden}
+.sC .ag.empty{border-color:transparent}
+.sC .ico{border-radius:2px;margin:0 3px}
+.sC .ico .tm{left:50%;right:auto;width:max-content;min-width:26px;transform:translateX(-50%);bottom:-12px;font-size:9px;font-weight:bold;color:#fff;text-shadow:-1px -1px 0 #000,1px 1px 0 #000}
+.sC .ag.db .ico .tm{color:#ffd100}
+.sC .ico.short .tm{color:#ff5050!important}
+.sC.tgt .fr{outline:1px solid #fffbd0;outline-offset:0;filter:drop-shadow(0 0 4px #fff3a0) drop-shadow(0 0 2px #fff)}
+.sC.aggro .fr{outline:2px solid #ff2020;outline-offset:0;filter:none}
+.sC.tgt.aggro .fr{filter:drop-shadow(0 0 4px #fff3a0)}
+.sC.dead .hp{background:#3a3a3a}
+.sC.dead .nm{top:6px;color:#9a9a9a;text-shadow:1px 1px 0 #000}
+.sC .deadfx{background:none;color:#a0a0a0;font-weight:normal;letter-spacing:0;font-size:11px;gap:3px;top:27px;align-items:flex-start;justify-content:center}
+.sC.pet .hp{height:22px}.sC.pet .vl{display:none}.sC.pet .nm{top:4px;font-size:11px}
+.cu{display:flex;flex-direction:column;gap:3px}
+.sC.pet{margin-left:0}
+.wgroup{position:relative;padding-top:12px;width:fit-content;max-width:100%}
+.wtitle{position:absolute;left:50%;top:0;transform:translateX(-50%);z-index:2;padding:2px 22px;font-size:13px;color:var(--gold);text-shadow:1px 1px 1px #000;background:linear-gradient(#2a2a30,#0c0c10);border:2px solid #8a8a9a;border-radius:5px;box-shadow:0 0 0 1px #000;letter-spacing:.5px}
+.party.compact{background:none;padding:0}
+.party.compact.gb{border:2px solid #8a8aa0;padding:6px;background:#000000a0}
+
+/* Original + bar borders */
+.ob{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(720px,1fr));align-items:start}
+.opty{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap}
+.ou{width:138px;display:flex;flex-direction:column;gap:2px}
+.ou.oor{opacity:.45}
+.oa{display:flex;gap:2px;flex-wrap:wrap;min-height:30px;padding-bottom:11px;align-items:flex-start}
+.oa.db{align-content:flex-start}
+.oa .ico .tm{bottom:-11px;font-size:9px;font-weight:bold;color:#fff}
+.oa.db .ico .tm{color:#ffd100}
+.oa .ico.short .tm{color:#ff5050}
+.oa .ico{margin-right:4px}
+.otile{background:#000000d0;border:1px solid #8a8a94;padding:0;position:relative}
+.ohp{position:relative;height:44px;background:#2a0d0d;overflow:hidden}
+.ohp .fill{background-color:var(--cc)}
+.ohp .nm{position:absolute;left:5px;top:3px;font-size:12px;color:#fff;text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;z-index:1;white-space:nowrap}
+.ohp .vl{position:absolute;right:5px;top:3px;font-size:11px;color:#fff;text-shadow:1px 1px 1px #000;z-index:1}
+.ohp .inc{position:absolute;right:5px;bottom:2px;font-size:10px;color:var(--heal);text-shadow:1px 1px 1px #000;z-index:1}
+.opw{height:8px;background:#111;position:relative;margin-top:2px}
+.opw i{position:absolute;left:0;top:0;bottom:0;background-image:var(--tex)}
+.obar{position:relative}
+.ou .obar:hover,.ou.tgt .obar{outline:1px solid #fff;outline-offset:2px}
+.ou.tgt .obar{outline-color:var(--gold);filter:drop-shadow(0 0 5px var(--gold))}
+.ou.aggro .obar{filter:drop-shadow(0 0 5px #ff3030)}
+.ou.pet{width:100px;margin-left:0}.ou.pet .ohp{height:22px}
+.ou.pet .oa{min-height:0;padding:0}
+.ohp.nob{box-shadow:none}
+</style>
+</head>
+<body>
+<h1>Healer Forever frame styles</h1>
+<div class="sub">Style C (Compact Raid-like) is the default view; the picker shows the others. CSS emulation of default-client textures. Hover a frame, click to target it. <a href="index.html">Back to the main mockup</a></div>
+
+<div class="panel" id="orig-borders">
+  <h3>Original + bar borders</h3>
+  <div class="path">Left: the original party frames. Right: the same frames with a border added around each bar only (health bar and power bar). No group panel, title or tile box. Buffs sit above the bar and debuffs below, without boxes.</div>
+  <div class="pg" id="oPanel">
+    <div class="r"><label>Bar border style</label><select data-o="bs"><option value="none">None</option><option value="thin">Thin</option><option value="tooltip">Tooltip</option><option value="gold">Vanilla gold</option></select></div>
+    <div class="r"><label>Border thickness</label><input type="range" data-o="bw" min="1" max="4"><span class="v" id="oBwV"></span></div>
+    <div class="r"><label>Border colour</label><span><select data-o="bc"><option value="class">Class colour</option><option value="black">Black</option><option value="gold">Gold</option><option value="custom">Custom</option></select> <input type="color" data-o="custom"></span></div>
+  </div>
+  <div class="ob">
+    <div><div class="sec">Before: original</div><div class="opty" id="oBefore"></div></div>
+    <div><div class="sec">After: borders around the bars</div><div class="opty" id="oAfter"></div></div>
+  </div>
+  <div class="cap">Bar border textures: Thin = <code>Interface\Buttons\WHITE8X8</code> edge 1 &middot; Tooltip = <code>Interface\Tooltips\UI-Tooltip-Border</code> &middot; Vanilla gold = <code>Interface\DialogFrame\UI-DialogBox-Gold-Border</code>. Applied to the health bar and the power bar frames only.</div>
+</div>
+
+<div class="bar" id="picker">
+  <b>Show:</b>
+  <button class="btn" data-s="all">All side by side</button><button class="btn off" data-s="A">A Vanilla Polished</button><button class="btn off" data-s="B">B Clean Healer</button><button class="btn off" data-s="C">C Compact Raid-like</button>
+</div>
+
+<div class="panel" id="panel">
+  <h3>Options &gt; Frames &gt; Appearance</h3>
+  <div class="path">Each control maps 1:1 to a future addon option.</div>
+  <div class="row" style="display:flex;gap:8px;align-items:center;margin-bottom:6px"><label>Apply changes to</label>
+    <select id="applyTo"><option value="all">All styles</option><option value="A">A Vanilla Polished</option><option value="B">B Clean Healer</option><option value="C">C Compact Raid-like</option></select>
+    <button class="btn off" id="resetDef">Reset to style defaults</button>
+    <label style="margin-left:10px"><input type="checkbox" id="ticks" checked> Live timers</label></div>
+  <div class="sec">Frame border</div>
+  <div class="pg">
+    <div class="r"><label>Border style</label><select data-k="bs"><option value="none">None</option><option value="thin">Thin (1px)</option><option value="tooltip">Tooltip</option><option value="gold">Vanilla gold</option><option value="stone">Dialog stone</option></select></div>
+    <div class="r"><label>Border thickness</label><input type="range" data-k="bw" min="1" max="8"><span class="v" data-v="bw"></span></div>
+    <div class="r"><label>Border colour</label><span><select data-k="bc"><option value="class">Class colour</option><option value="black">Black</option><option value="gold">Gold</option><option value="custom">Custom</option></select> <input type="color" data-k="custom"></span></div>
+    <div class="r"><label>Background opacity</label><input type="range" data-k="bg" min="0" max="100"><span class="v" data-v="bg"></span></div>
+    <div class="r"><label>Bar texture</label><select data-k="tex"><option value="blizzard">Blizzard</option><option value="smooth">Smooth</option><option value="flat">Flat</option></select></div>
+    <div class="r"><label>Spacing between frames</label><input type="range" data-k="sp" min="0" max="24"><span class="v" data-v="sp"></span></div>
+    <div class="r"><label>Corner inset / padding</label><input type="range" data-k="pad" min="0" max="12"><span class="v" data-v="pad"></span></div>
+    <div class="r"><label>Border around party group</label><input type="checkbox" data-k="gb"></div>
+  </div>
+  <div class="sec">Buffs &amp; debuffs layout</div>
+  <div class="pg">
+    <div class="r"><label>Buff position</label><select data-k="bpos"></select></div>
+    <div class="r"><label>Debuff position</label><select data-k="dpos"></select></div>
+    <div class="r"><label>Buff icon size</label><input type="range" data-k="bsz" min="10" max="28"><span class="v" data-v="bsz"></span></div>
+    <div class="r"><label>Debuff icon size</label><input type="range" data-k="dsz" min="12" max="32"><span class="v" data-v="dsz"></span></div>
+    <div class="r"><label>Max per row</label><input type="range" data-k="max" min="2" max="8"><span class="v" data-v="max"></span></div>
+    <div class="r"><label>Grow direction</label><select data-k="grow"><option value="right">Right</option><option value="left">Left</option><option value="down">Down</option><option value="up">Up</option></select></div>
+  </div>
+  <div class="cap" style="margin-top:6px"><b>Border style to texture:</b> Thin = <code>Interface\Buttons\WHITE8X8</code> edgeSize 1 &middot; Tooltip = <code>Interface\Tooltips\UI-Tooltip-Border</code> &middot; Vanilla gold = <code>Interface\DialogFrame\UI-DialogBox-Gold-Border</code> &middot; Dialog stone = <code>Interface\DialogFrame\UI-DialogBox-Border</code>. <b>Bar texture:</b> Blizzard = <code>Interface\TargetingFrame\UI-StatusBar</code>, Smooth = <code>Interface\RaidFrame\Raid-Bar-Hp-Fill</code>, Flat = <code>Interface\Buttons\WHITE8X8</code>. Debuffs get their own red-tinted zone and a larger default icon than buffs.</div>
+</div>
+
+<div class="cols" id="cols"></div>
+
+<div class="legend">
+  <span>States on the sample party:</span>
+  <span><b style="color:#fff">Mouse-over</b>: hover any frame</span>
+  <span><b style="color:var(--gold)">Target</b>: click a frame</span>
+  <span><b style="color:#fff">Out of range</b>: Rexxar</span>
+  <span><b style="color:#ff6060">Low HP pulse</b>: Jaina</span>
+  <span><b style="color:#d04040">Dead</b>: Gul'dan</span>
+  <span><b style="color:var(--heal)">Heal prediction + overheal</b>: Thrall, Garrosh</span>
+</div>
+
+<script>
+const CC={Warrior:'#C69B6D',Paladin:'#F48CBA',Hunter:'#AAD372',Mage:'#3FC7EB',Warlock:'#8788EE',Priest:'#FFFFFF'};
+const PWC={mana:'#0000ff',rage:'#ff0000',energy:'#ffff00'};
+const TC={magic:'var(--magic)',curse:'var(--curse)',poison:'var(--poison)',disease:'var(--disease)',none:'var(--phys)'};
+const DISP=['magic','poison','disease'];
+const ROLE={T:['🛡','#8ab4ff'],H:['✚','#7dff9b'],D:['⚔','#ffb0a0']};
+const TEX={blizzard:'linear-gradient(rgba(255,255,255,.38),rgba(255,255,255,.04) 48%,rgba(0,0,0,.28))',smooth:'linear-gradient(rgba(255,255,255,.2),rgba(0,0,0,.2))',flat:'none'};
+const T0=performance.now()/1000, now=()=>performance.now()/1000;
+const M=[
+ {id:'t',n:'Garrosh',cls:'Warrior',role:'T',hp:4100,max:6800,pw:.45,pt:'rage',aggro:true,inc:1500,
+  buffs:[['Mi','#b5442a','Might',212],['Ki','#a07de0','Kings',95],['Fo','#c0a040','Fortitude',1200]],deb:[{n:'Rend',t:'none',d:14},{n:'Sunder x3',t:'none',d:28},{n:'Corrosive Poison',t:'poison',d:22}]},
+ {id:'h',n:'Thrall (you)',cls:'Paladin',role:'H',hp:3900,max:4200,pw:.72,pt:'mana',inc:900,
+  buffs:[['Wi','#3b6fd1','Wisdom',260],['Ki','#a07de0','Kings',9]],deb:[]},
+ {id:'d1',n:'Jaina',cls:'Mage',role:'D',hp:760,max:3200,pw:.88,pt:'mana',
+  buffs:[['Wi','#3b6fd1','Wisdom',41]],deb:[{n:'Frost Nova',t:'magic',d:6},{n:'Curse of Tongues',t:'curse',d:95}]},
+ {id:'d2',n:'Rexxar',cls:'Hunter',role:'D',hp:2400,max:3900,pw:.6,pt:'mana',oor:true,
+  buffs:[['Mi','#b5442a','Might',7]],deb:[{n:'Serpent Sting',t:'poison',d:9}]},
+ {id:'x',n:"Gul'dan",cls:'Warlock',role:'D',hp:0,max:3400,pw:0,pt:'mana',dead:true,buffs:[['Ki','#a07de0','Kings',200]],deb:[{n:'Plague',t:'disease',d:28}]},
+ {id:'p',n:'Misha',cls:'Hunter',role:'D',hp:2100,max:3000,pw:0,pt:'energy',pet:true,owner:'d2',buffs:[],deb:[]},
+];
+M.forEach(m=>{m.bexp=m.buffs.map(b=>T0+b[3]);m.dexp=m.deb.map(d=>T0+d.d)});
+const fmtT=s=>s>=60?Math.ceil(s/60)+'m':s>=10?Math.floor(s)+'':s.toFixed(1);
+const fmtK=n=>n>=1000?(n/1000).toFixed(1)+'k':''+n;
+let target='t';
+
+const BASE={bs:'thin',bw:1,bc:'black',custom:'#ffd100',bg:80,tex:'blizzard',sp:6,pad:2,gb:true,bpos:'top',dpos:'bottom',bsz:16,dsz:20,max:5,grow:'right'};
+const DEF={
+ A:{...BASE,bs:'gold',bw:4,bc:'gold',pad:2},
+ B:{...BASE,tex:'flat',pad:0},
+ C:{...BASE,bs:'none',bw:2,bc:'black',bg:0,tex:'smooth',sp:8,pad:0,gb:false,bsz:14,dsz:18,max:4}
+};
+const S={A:{...DEF.A},B:{...DEF.B},C:{...DEF.C}};
+const POS=[['top','Top'],['bottom','Bottom'],['left','Left'],['right','Right'],['inside','Inside bar']];
+
+function colOf(s,m){return s.bc==='class'?CC[m.cls]:s.bc==='gold'?'#ffd100':s.bc==='custom'?s.custom:'#000'}
+function borderCSS(s,m){
+  const c=colOf(s,m),w=s.bs==='thin'?1:s.bw,mx=(a,b,p)=>`color-mix(in srgb,${a},${b} ${p}%)`;
+  switch(s.bs){
+    case 'none':return 'border:0';
+    case 'thin':return `border:1px solid ${c}`;
+    case 'tooltip':return `border:${w}px solid ${mx(c,'#8a8aa0',s.bc==='black'?100:40)};border-radius:${3+w}px;box-shadow:0 0 0 1px #000,inset 0 0 0 1px #000`;
+    case 'gold':return `border:${w}px solid transparent;border-image:linear-gradient(135deg,${mx(c,'#fff',55)},${mx(c,'#000',45)} 35%,${c} 60%,${mx(c,'#000',60)}) 1;box-shadow:0 0 0 1px #000,inset 0 0 0 1px #000`;
+    default:{const g=mx(c,'#b0b0b8',s.bc==='black'?100:25);return `border:${w}px solid transparent;border-image:linear-gradient(135deg,${mx(g,'#fff',45)},${mx(g,'#000',50)} 30%,${g} 60%,${mx(g,'#000',65)}) 1;box-shadow:0 0 0 1px #000,inset 0 0 0 1px #000`}
+  }
+}
+function auras(m,which,cap,sz){
+  const t=now();
+  if(which==='b')return m.buffs.map((b,i)=>({b,r:m.bexp[i]-t})).filter(x=>x.r>0).slice(0,cap).map(x=>`<div class="ico ${x.r<10?'short':''}" style="--ic:${sz}px;background:${x.b[1]}" data-tip="${x.b[2]}|${fmtT(x.r)} remaining">${x.b[0]}<span class="tm">${fmtT(x.r)}</span></div>`).join('');
+  const ds=m.deb.map((d,i)=>({d,r:m.dexp[i]-t,disp:DISP.includes(d.t)})).filter(x=>x.r>0).sort((a,b)=>b.disp-a.disp);
+  return ds.slice(0,cap).map(x=>`<div class="ico ${x.r<10?'short':''} ${x.disp?'disp':''}" style="--ic:${sz}px;background:#2a0a0a;border:2px solid ${TC[x.d.t]};--dc:${TC[x.d.t]}" data-tip="${x.d.n}|${x.d.t==='none'?'Physical':x.d.t}${x.disp?' · dispellable':''} · ${fmtT(x.r)}">${x.d.n[0]}<span class="tm">${fmtT(x.r)}</span></div>`).join('');
+}
+const GROW={right:'row',left:'row-reverse',down:'column',up:'column-reverse'};
+function group(m,kind,s,sty){
+  const sz=kind==='b'?s.bsz:s.dsz, inner=auras(m,kind,s.max*3,sz);
+  const vert=s.grow==='down'||s.grow==='up', n=s.max, span=n*(sz+2+(sty==='C'?16:0))+6;
+  const lim=(vert?`max-height:${span}px`:`max-width:${span}px`)+(!vert?`;min-height:${sz+(sty==='C'?22:8)}px`:'');
+  return `<div class="ag ${kind==='b'?'bf':'db'} ${inner?'':'empty'}" title="${kind==='b'?'Buffs':'Debuffs'}" style="flex-direction:${GROW[s.grow]};${lim}">${inner}</div>`;
+}
+function bars(m){
+  const p=m.hp/m.max*100, heal=m.inc?Math.min(m.inc,m.max-m.hp):0, ov=m.inc?m.inc-heal:0;
+  return `<div class="fill" style="width:${p}%"></div>`+(heal?`<div class="pred" style="left:${p}%;width:${heal/m.max*100}%"></div>`:'')+(ov>0?`<div class="over" style="right:0;width:${Math.min(ov/m.max*100,12)}%"></div>`:'');
+}
+function domType(m){const t=now();const i=m.deb.findIndex((d,i)=>m.dexp[i]>t&&DISP.includes(d.t));return i<0?null:TC[m.deb[i].t]}
+const dead=`<div class="deadfx">DEAD</div>`, low=`<div class="lowfx"></div>`;
+
+function inner(sty,m,s){
+  const pw=m.pet?'':`<div class="pw"><i style="width:${m.pw*100}%;background-color:${PWC[m.pt]}"></i></div>`;
+  const inB=(!m.pet&&s.bpos==='inside')?`<div class="in b">${auras(m,'b',s.max,Math.min(s.bsz,14))}</div>`:'';
+  const inD=(!m.pet&&s.dpos==='inside')?`<div class="in d">${auras(m,'d',s.max,Math.min(s.dsz,16))}</div>`:'';
+  const def=m.max-m.hp, pct=Math.round(m.hp/m.max*100);
+  if(sty==='A')return `<div class="hp">${bars(m)}<div class="nm">${m.pet?'':ROLE[m.role][0]+' '}${m.n}</div><div class="vl">${m.dead?'':pct+'%'}</div>${inB}${inD}${low}${dead}</div>${pw}`;
+  if(sty==='B')return `<div class="hp">${bars(m)}<div class="nm">${m.n}</div><div class="vl ${def<=0?'full':''}">${m.dead?'':def>0?'-'+fmtK(def):'100%'}</div>${inB}${inD}${low}${dead}</div>${pw}`;
+  const deadC=`<div class="deadfx"><span>💀</span> Dead</div>`;
+  return `<div class="hp">${bars(m)}${m.pet?'':`<span class="ri ${m.role}">${ROLE[m.role][0]}</span>`}<div class="nm">${m.n.replace(' (you)','')}</div><div class="vl">${m.dead?'':def>0?'-'+fmtK(def):''}</div>${inB}${inD}${low}${deadC}</div>${pw}`;
+}
+function unit(sty,m,s){
+  const z={top:[],bottom:[],left:[],right:[]};
+  if(!m.pet){
+    if(s.bpos!=='inside')z[s.bpos].push(group(m,'b',s,sty));
+    if(s.dpos!=='inside')z[s.dpos].push(group(m,'d',s,sty));
+  }
+  const zone=k=>z[k].length?`<div class="z z${k[0]}">${z[k].join('')}</div>`:'';
+  const dc=sty==='B'?domType(m):null;
+  const core=`<div class="fr ${dc?'dispb':''}" style="${borderCSS(s,m)};--pad:${s.pad}px;--bga:${s.bg/100};--cc:${CC[m.cls]};--tex:${TEX[s.tex]};${dc?`--dispc:${dc}`:''}">${inner(sty,m,s)}</div>`;
+  const lowc=!m.dead&&!m.pet&&m.hp/m.max<.3;
+  return `<div class="unit s${sty} ${m.dead?'dead':''} ${m.oor?'oor':''} ${lowc?'low':''} ${target===m.id?'tgt':''} ${m.aggro?'aggro':''} ${m.pet?'pet':''}" data-id="${m.id}">${zone('top')}<div class="mid">${zone('left')}${core}${zone('right')}</div>${zone('bottom')}</div>`;
+}
+const STY={
+ A:{t:'A. Vanilla Polished',d:'Gold/stone dialog border, beveled glossy class-coloured bar, thin mana bar, outlined name text.',cap:'<code>Interface\\DialogFrame\\UI-DialogBox-Border</code> / <code>UI-DialogBox-Gold-Border</code> edge + <code>Interface\\Tooltips\\UI-Tooltip-Background</code>. Bars: <code>Interface\\TargetingFrame\\UI-StatusBar</code>. Highlight: <code>Interface\\Buttons\\ButtonHilight-Square</code> ADD blend. Heal prediction: <code>Interface\\RaidFrame\\Raid-Bar-Hp-Fill</code> tinted green.'},
+ B:{t:'B. Clean Healer',d:'Flat dark frame, class stripe, large deficit text, aggro glow, border ring by dispel type.',cap:'<code>Interface\\Buttons\\WHITE8X8</code> for background, border and stripe. Bars: <code>Interface\\RaidFrame\\Raid-Bar-Hp-Fill</code>. Aggro glow: <code>Interface\\Buttons\\UI-ActionButton-Border</code> ADD blend. Deficit text: <code>GameFontHighlightLarge</code> with outline. Dispel ring colour from <code>DebuffTypeColor</code>.'},
+ C:{t:'C. Compact Raid-like',d:'Small tight frames: role icon top-left, deficit text centred, small auras.',cap:'<code>Interface\\RaidFrame\\Raid-Bar-Hp-Fill</code> / <code>Raid-Bar-Resource-Fill</code> bars, <code>Interface\\RaidFrame\\Raid-Bar-Hp-Bg</code> background, <code>Interface\\LFGFrame\\UI-LFG-ICON-PORTRAITROLES</code> roles (unicode glyphs here), <code>Interface\\Buttons\\UI-Debuff-Overlays</code> debuff borders.'}
+};
+let show='C';
+function draw(){
+  const keys=show==='all'?['A','B','C']:[show];
+  document.getElementById('cols').innerHTML=keys.map(k=>{const s=S[k],St=STY[k];
+    return `<div class="col" id="style-${k}"><h2>${St.t}</h2><div class="desc">${St.d}</div><div style="position:relative"><div class="party ${k==='C'?'compact':''} ${s.gb?'gb':''}" style="--sp:${s.sp}px">${k==='C'?M.filter(m=>!m.pet).map(m=>`<div class="cu">${unit(k,m,s)}${M.filter(p=>p.owner===m.id).map(p=>unit(k,p,s)).join('')}</div>`).join(''):M.map(m=>unit(k,m,s)).join('')}</div><div class="tt"></div></div><div class="cap"><b>Textures:</b> ${St.cap}</div></div>`}).join('');
+  document.querySelectorAll('#picker .btn').forEach(b=>b.classList.toggle('off',b.dataset.s!==show));
+}
+/* panel */
+const P=document.getElementById('panel');
+P.querySelectorAll('[data-k=bpos],[data-k=dpos]').forEach(sel=>sel.innerHTML=POS.map(([v,l])=>`<option value="${v}">${l}</option>`).join(''));
+const targets=()=>{const a=document.getElementById('applyTo').value;return a==='all'?['A','B','C']:[a]};
+function syncPanel(){const a=document.getElementById('applyTo').value;const s=S[a==='all'?(show==='all'?'A':show):a];P.querySelectorAll('[data-k]').forEach(el=>{const v=s[el.dataset.k];if(el.type==='checkbox')el.checked=v;else el.value=v});P.querySelectorAll('[data-v]').forEach(el=>el.textContent=s[el.dataset.v])}
+P.addEventListener('input',e=>{const k=e.target.dataset.k;if(!k)return;const v=e.target.type==='checkbox'?e.target.checked:e.target.type==='range'?+e.target.value:e.target.value;
+  targets().forEach(t=>S[t][k]=v);const vv=P.querySelector(`[data-v=${k}]`);if(vv)vv.textContent=v;draw()});
+document.getElementById('applyTo').onchange=syncPanel;
+document.getElementById('resetDef').onclick=()=>{targets().forEach(t=>S[t]={...DEF[t]});syncPanel();draw()};
+document.getElementById('picker').addEventListener('click',e=>{const b=e.target.closest('.btn');if(!b)return;show=b.dataset.s;syncPanel();draw();history.replaceState(null,'','#style-'+(show==='all'?'compare':show))});
+document.getElementById('cols').addEventListener('click',e=>{const f=e.target.closest('.unit');if(f){target=f.dataset.id;draw()}});
+document.addEventListener('mousemove',e=>{
+  document.querySelectorAll('.tt').forEach(t=>t.style.display='none');
+  const el=e.target instanceof Element?e.target:null;const ic=el&&el.closest('[data-tip]');if(!ic)return;
+  const w=ic.closest('.col')&&ic.closest('.col').querySelector('.tt');if(!w)return;const r=w.parentElement.getBoundingClientRect();
+  const [a,b]=ic.dataset.tip.split('|');w.innerHTML=`<div style="color:#fff">${a}</div><div style="color:var(--muted)">${b}</div>`;w.style.display='block';w.style.left=(e.clientX-r.left+12)+'px';w.style.top=(e.clientY-r.top+12)+'px';
+});
+setInterval(()=>{if(document.getElementById('ticks').checked&&!P.contains(document.activeElement))draw()},500);
+const OS={bs:'tooltip',bw:2,bc:'black',custom:'#ffd100',tex:'blizzard'};
+function ounit(m,s){
+  const pw=m.pet?'':`<div class="opw" style="${s?borderCSS(s,m):''}"><i style="width:${m.pw*100}%;background-color:${PWC[m.pt]}"></i></div>`;
+  const pct=Math.round(m.hp/m.max*100), lowc=!m.dead&&!m.pet&&m.hp/m.max<.3;
+  const heal=m.inc?Math.min(m.inc,m.max-m.hp):0;
+  const buffs=m.pet?'':`<div class="oa">${auras(m,'b',4,16)}</div>`;
+  const debs=m.pet?'':`<div class="oa db">${auras(m,'d',3,20)}</div>`;
+  const bar=`<div class="obar" style="--cc:${CC[m.cls]};--tex:${TEX.blizzard}"><div class="ohp" style="${s?borderCSS(s,m):''}">${bars(m)}<div class="nm">${m.pet?'':ROLE[m.role][0]+' '}${m.n}</div><div class="vl">${m.dead?'':pct+'%'}</div>${heal?`<div class="inc">+${heal}</div>`:''}<div class="lowfx"></div><div class="deadfx">DEAD</div></div>${pw}</div>`;
+  return `<div class="ou ${m.dead?'dead':''} ${m.oor?'oor':''} ${lowc?'low':''} ${target===m.id?'tgt':''} ${m.aggro?'aggro':''} ${m.pet?'pet':''}" data-id="${m.id}">${buffs}${s?bar:`<div class="otile">${bar}</div>`}${debs}</div>`;
+}
+function ocol(m,s){return `<div class="opty" style="flex-direction:column;gap:4px">${ounit(m,s)}${M.filter(p=>p.owner===m.id).map(p=>ounit(p,s)).join('')}</div>`}
+function drawO(){
+  document.getElementById('oBefore').innerHTML=M.filter(m=>!m.pet).map(m=>ocol(m,null)).join('');
+  document.getElementById('oAfter').innerHTML=M.filter(m=>!m.pet).map(m=>ocol(m,OS)).join('');
+}
+const OP=document.getElementById('oPanel');
+OP.querySelectorAll('[data-o]').forEach(el=>el.value=OS[el.dataset.o]);document.getElementById('oBwV').textContent=OS.bw;
+OP.addEventListener('input',e=>{const k=e.target.dataset.o;if(!k)return;OS[k]=e.target.type==='range'?+e.target.value:e.target.value;document.getElementById('oBwV').textContent=OS.bw;drawO()});
+document.getElementById('orig-borders').addEventListener('click',e=>{const u=e.target.closest('.ou');if(u){target=u.dataset.id;drawO()}});
+setInterval(drawO,500);drawO();
+syncPanel();
+if(/^#style-[ABC]$/.test(location.hash))show=location.hash.slice(-1);else if(location.hash==='#style-compare')show='all';
+draw();
+</script>
+</body>
+</html>

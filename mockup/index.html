@@ -1,0 +1,673 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Healer Forever Mockup</title>
+<style>
+:root{
+  --gold:#ffd100; --gold-dim:#c9a227; --panel:#14110d; --panel2:#1d1913; --edge:#5a4a2a;
+  --text:#e8e2d0; --muted:#9a927e; --ok:#3cd25a; --heal:#7dff9b; --over:#2f9e4a;
+  --magic:#3c8cff; --curse:#a43cff; --poison:#2fb84a; --disease:#c8a028;
+}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font-family:"Friz Quadrata TT",Georgia,"Times New Roman",serif;color:var(--text);overflow:hidden;
+  background:radial-gradient(ellipse at 30% 70%,#3b4a2a 0%,#1f2a18 35%,#0d120b 70%),#0d120b;}
+.scene-label{position:fixed;left:16px;top:12px;font-size:12px;color:#ffffff80;letter-spacing:.5px}
+/* ---------- mockup control strip ---------- */
+#mockbar{position:fixed;left:50%;transform:translateX(-50%);bottom:12px;background:#000000d0;border:1px solid #6a6a6a;border-radius:4px;padding:8px 12px;display:flex;gap:8px;align-items:center;font:12px Georgia,serif;z-index:50;flex-wrap:wrap;max-width:calc(100vw - 32px)}
+#mockbar b{color:var(--gold)}
+#mockbar button{font:12px Georgia,serif;background:linear-gradient(#3a3a3a,#1c1c1c);color:#ddd;border:1px solid #666;border-radius:3px;padding:4px 8px;cursor:pointer}
+#mockbar button.on{background:linear-gradient(#7a1c1c,#3a0808);border-color:var(--gold);color:var(--gold)}
+/* ---------- minimap ---------- */
+#minimap{position:fixed;right:34px;top:40px;width:170px;height:170px;border-radius:50%;
+  background:radial-gradient(circle at 40% 40%,#6f8a4a,#3d5228 55%,#24311a);
+  border:6px solid transparent;background-clip:padding-box;
+  box-shadow:0 0 0 3px #c9a227,0 0 0 5px #6a4a10,0 0 0 7px #1a1206,inset 0 0 0 2px #1a1206,inset 0 0 14px #000a,0 6px 20px #000a}
+#minimap::before{content:"";position:absolute;inset:-9px;border-radius:50%;pointer-events:none;background:conic-gradient(from 20deg,#ffe58a,#a8801c,#fff0a8,#7a5a14,#ffe58a);-webkit-mask:radial-gradient(circle,transparent 0 79px,#000 80px 88px,transparent 89px);mask:radial-gradient(circle,transparent 0 79px,#000 80px 88px,transparent 89px);z-index:1}
+#minimap::after{content:"";position:absolute;left:50%;top:50%;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:12px solid #fff;transform:translate(-50%,-50%);filter:drop-shadow(0 0 1px #000);z-index:2}
+#minimap .zone{position:absolute;top:-34px;left:50%;transform:translateX(-50%);padding:2px 14px;font-size:12px;color:var(--gold);text-shadow:1px 1px 1px #000,0 0 3px #000;background:linear-gradient(#000000b0,#000000b0);border:1px solid #6a5a2a;border-radius:3px;white-space:nowrap;z-index:3}
+#pins{position:absolute;inset:0;border-radius:50%;z-index:3}
+.pin{position:absolute;width:12px;height:12px;transform:translate(-50%,-50%);transition:left 1s linear,top 1s linear;cursor:default}
+.pin::before{content:"";position:absolute;left:2px;top:2px;width:8px;height:8px;border-radius:50%;background:var(--pc);box-shadow:0 0 0 1px #000}
+.pin.dead::before{width:14px;height:3px;left:-1px;top:4.5px;border-radius:0;transform:rotate(45deg)}
+.pin.dead::after{content:"";position:absolute;width:14px;height:3px;left:-1px;top:4.5px;background:var(--pc);box-shadow:0 0 0 1px #000;transform:rotate(-45deg)}
+.pin.dead::before{box-shadow:0 0 0 1px #000}
+.pin.edge{opacity:.8}
+#mmbtn{position:absolute;width:34px;height:34px;border-radius:50%;cursor:pointer;z-index:4;
+  background:radial-gradient(circle at 50% 40%,#4a3a1a,#1a1408 70%);border:2px solid #d8b040;box-shadow:0 0 0 1px #000,inset 0 0 0 2px #7a5a14,0 2px 4px #000;display:grid;place-items:center;
+  left:calc(50% + 85px*cos(220deg) - 17px);top:calc(50% + 85px*sin(220deg) - 17px);transition:filter .15s}
+#mmbtn:hover{filter:brightness(1.3) drop-shadow(0 0 5px var(--gold))}
+#mmbtn .hf{font:bold 13px/1 Georgia,'Times New Roman',serif;letter-spacing:-.5px;color:#ffd100;text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;margin-top:1px;pointer-events:none}
+.tooltip{position:fixed;background:linear-gradient(#0c0c1ef2,#05050ff5);border:2px solid #7a7a98;border-radius:6px;box-shadow:0 0 0 1px #000,inset 0 0 0 1px #1a1a2a;padding:6px 9px;font-size:12px;pointer-events:none;z-index:100;display:none;max-width:260px;line-height:1.45}
+.tooltip .t{color:#fff;font-size:14px}
+.trow{display:flex;gap:6px;align-items:center;font-size:11px}.trow .tr{margin-left:auto;color:#ddd;padding-left:8px}.ti{width:10px;height:10px;border:1px solid #000;flex:none}
+.tooltip .g{color:var(--ok)} .tooltip .y{color:var(--gold)} .tooltip .m{color:var(--muted)}
+/* ---------- party frames ---------- */
+#party{position:fixed;left:60px;top:150px;user-select:none}
+#party .handle{font-size:11px;color:var(--gold);background:#000c;border:1px solid #7a7a7a;border-bottom:none;padding:2px 8px;display:inline-block;cursor:move;border-radius:4px 4px 0 0}
+#party.locked .handle{display:none}
+#units{display:flex;gap:6px;padding:6px;background:#000000cc;border:2px solid #8a8a94;box-shadow:0 0 0 1px #000;border-radius:0 5px 5px 5px}
+#party.horizontal #units{flex-direction:row}
+#party.vertical #units{flex-direction:column}
+.slot{display:flex;gap:3px}
+#party.horizontal .slot{flex-direction:column}
+#party.vertical .slot{flex-direction:row;align-items:flex-start}
+.slot.dragging{opacity:.4}
+.slot.dropover .uf{outline:2px dashed var(--gold)}
+.uf{position:relative;width:var(--w,150px);background:#000000d0;border:1px solid #8a8a94;box-shadow:0 0 0 1px #000;cursor:pointer}
+.uf:hover{border-color:#fff}
+.uf.targeted{border-color:var(--gold);box-shadow:0 0 6px var(--gold)}
+.hp{position:relative;height:var(--h,38px);background:#2a0d0d;overflow:hidden}
+.hp .fill,.hp .pred,.hp .over{position:absolute;top:0;bottom:0}
+.hp .fill{left:0;transition:width .3s;background-image:linear-gradient(rgba(255,255,255,.22),rgba(255,255,255,0) 45%,rgba(0,0,0,.25))!important;background-blend-mode:normal}
+.hp .pred{background:var(--heal);opacity:.55;transition:all .15s}
+.hp .over{background:repeating-linear-gradient(45deg,#7dff9b99 0 4px,#2f9e4a99 4px 8px);border-left:1px solid #fff;transition:all .15s}
+.hp .name{position:absolute;left:5px;top:3px;font-size:11px;color:#fff;text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;white-space:nowrap}
+.hp .val{position:absolute;right:5px;top:3px;font-size:11px;color:#fff;text-shadow:1px 1px 1px #000}
+.hp .inc{position:absolute;right:5px;bottom:2px;font-size:10px;color:var(--heal);text-shadow:1px 1px 1px #000}
+.pw{height:6px;background:#111;position:relative}
+.pw .fill{position:absolute;left:0;top:0;bottom:0;background-image:linear-gradient(rgba(255,255,255,.25),rgba(0,0,0,.25))!important}
+.auras{display:flex;justify-content:space-between;gap:2px;padding:2px;background:#0b0b0b;min-height:calc(var(--ic,18px) + 4px)}
+.auras .grp{display:flex;gap:2px}
+.aura{position:relative;width:var(--ic,18px);height:var(--ic,18px);border:1px solid #000;font-size:10px;display:grid;place-items:center;color:#fff;font-weight:bold}
+.aura .tm{position:absolute;bottom:-1px;left:0;right:0;text-align:center;font-size:8px;font-weight:bold;color:#fff;text-shadow:0 0 2px #000,1px 1px 0 #000;line-height:1}
+.aura.short .tm{color:#ff5050}
+.aura.deb{outline:1px solid var(--dt,#c00)}
+.needbuff{position:absolute;right:-10px;top:-14px;width:24px;height:24px;border-radius:4px;border:2px solid var(--gold);display:grid;place-items:center;font-size:11px;font-weight:bold;color:#fff;cursor:pointer;animation:pulse 1.2s infinite;z-index:3}
+@keyframes pulse{0%,100%{box-shadow:0 0 2px var(--gold)}50%{box-shadow:0 0 10px var(--gold)}}
+.pet .uf{--w:calc(var(--pw,150px));}
+.pet .hp{height:calc(var(--h,38px)*.55)}
+.pet .hp .name{font-size:10px;top:2px}
+.pet .hp .val{font-size:9px;top:2px}
+#party.vertical .pet .uf{width:90px}
+.dead .hp{background:#3a3a3a}
+.dead .hp .fill,.dead .hp .pred,.dead .hp .over{width:0!important;display:none}
+.dead .hp .name{color:#9a9a9a!important}
+.dead .hp .val,.dead .hp .inc{display:none}
+.dead .pw{background:#222}.dead .pw .fill{width:0!important}
+.dead .auras .aura{opacity:.35;filter:grayscale(1)}
+.deadtxt{position:absolute;left:0;right:0;top:50%;transform:translateY(-35%);text-align:center;font-size:20px;font-weight:bold;letter-spacing:3px;color:#c03030;text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;pointer-events:none}
+.resbadge{position:absolute;right:-10px;top:-14px;width:24px;height:24px;border-radius:50%;border:2px solid var(--gold);background:radial-gradient(circle,#fff4b0,#d8a83a 60%,#6a4a10);display:grid;place-items:center;font-size:13px;color:#4a2a00;z-index:3;animation:pulse 1.2s infinite;box-shadow:0 0 8px var(--gold)}
+.castbar{position:absolute;left:8%;right:8%;bottom:6px;height:14px;background:#000c;border:1px solid #8a8a94;z-index:4;pointer-events:none}
+.castbar i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(#ffe070,#c08a10)}
+.castbar span{position:absolute;inset:0;text-align:center;font-size:10px;line-height:12px;color:#fff;text-shadow:1px 1px 0 #000}
+.oor{opacity:.45}
+/* ---------- options window ---------- */
+#opts{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(880px,calc(100vw - 32px));height:min(600px,calc(100vh - 90px));background:linear-gradient(#000000e6,#0a0806ee);border:6px solid transparent;border-image:linear-gradient(135deg,#d8d8e0,#6a6a74 30%,#b8b8c4 60%,#5a5a64) 1;box-shadow:0 0 0 1px #000,inset 0 0 0 1px #000,inset 0 0 0 3px #3a3a42,0 10px 40px #000;display:none;flex-direction:column;z-index:40;margin-top:0}
+#opts::before,#opts::after{content:"";position:absolute;width:12px;height:12px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff,#9a9aa4 50%,#3a3a42);box-shadow:0 0 0 1px #000;z-index:2;pointer-events:none}
+#opts::before{left:-9px;top:-9px;box-shadow:0 0 0 1px #000,calc(min(880px,100vw - 32px) - 6px) 0 0 -1px transparent}
+#opts::after{right:-9px;bottom:-9px}
+#opts.open{display:flex}
+#opts header{position:relative;display:flex;align-items:center;justify-content:center;padding:14px 12px 8px;border-bottom:1px solid #4a4a52;cursor:move;margin-top:14px}
+#opts .plate{position:absolute;left:50%;top:-34px;transform:translateX(-50%);min-width:300px;text-align:center;padding:9px 30px 11px;background:linear-gradient(#2a2a30,#0c0c10);border:3px solid #9a9aa6;border-radius:6px;box-shadow:0 0 0 1px #000,inset 0 0 0 1px #000,0 3px 6px #000;white-space:nowrap;z-index:3}
+#opts header h1{margin:0;font-size:16px;color:var(--gold);font-weight:normal;letter-spacing:.5px;text-shadow:1px 1px 1px #000}
+#opts header .cls{font-size:12px;color:#F48CBA;margin-left:0}
+#opts header .sub{text-align:center}
+.xbtn{position:absolute;right:2px;top:12px;background:linear-gradient(#9a2a2a,#4a0808);color:var(--gold);border:1px solid #000;border-radius:3px;width:22px;height:22px;cursor:pointer;box-shadow:inset 0 0 0 1px #c9a22788;z-index:4}
+.obody{display:flex;flex:1;min-height:0}
+nav{width:170px;background:#00000066;border-right:2px solid #5a5a62;padding:10px 8px;overflow:auto}
+nav button{display:block;width:100%;text-align:left;background:none;border:1px solid transparent;color:var(--text);padding:6px 12px;margin-bottom:2px;font:13px Georgia,serif;cursor:pointer}
+nav button:hover{background:#ffffff14;color:#fff}
+nav button.act{color:var(--gold);border-color:#8a6a1a;background:linear-gradient(#5a1a1a,#2a0808);box-shadow:inset 0 0 6px #ffd10033}
+.pane{flex:1;padding:14px 18px;overflow:auto;display:none}
+.pane.act{display:block}
+.pane h2{margin:0 0 4px;font-size:15px;color:var(--gold);font-weight:normal}
+.pane p.hint{margin:0 0 12px;font-size:12px;color:var(--muted)}
+.row{display:flex;align-items:center;gap:10px;margin:8px 0;font-size:13px;flex-wrap:wrap}
+.row label{min-width:170px;color:#ddd}
+.chk{display:flex;align-items:center;gap:8px;font-size:13px;margin:6px 0;cursor:pointer}
+.chk input{appearance:none;-webkit-appearance:none;width:18px;height:18px;margin:0;flex:none;background:linear-gradient(#2a2a30,#0c0c10);border:2px solid #8a8a94;border-radius:3px;box-shadow:0 0 0 1px #000;display:grid;place-items:center;cursor:pointer}.chk input:checked::after{content:"";width:5px;height:10px;border:solid var(--gold);border-width:0 3px 3px 0;transform:rotate(40deg) translate(-1px,-1px)}.chk input:hover{border-color:var(--gold)}
+select,input[type=text]{background:#000;color:var(--text);border:2px solid #6a6a74;border-radius:3px;padding:3px 6px;font:13px Georgia,serif}
+input[type=range]{accent-color:#d8a83a;width:180px}
+.btn{background:linear-gradient(#b02a2a,#6a1010 50%,#3a0606);color:var(--gold);border:1px solid #000;border-radius:4px;box-shadow:inset 0 0 0 1px #d8a0a055,inset 0 1px 0 #ffffff40;padding:5px 14px;font:12px Georgia,serif;text-shadow:1px 1px 0 #000;cursor:pointer}.btn:active{filter:brightness(.8)}
+.btn:hover{filter:brightness(1.25)}
+.btn.sec{background:linear-gradient(#b02a2a,#6a1010 50%,#3a0606);color:var(--gold)}
+.seg{display:inline-flex;border:1px solid #000;box-shadow:0 0 0 1px #6a6a74;border-radius:4px;overflow:hidden}
+.seg button{background:#0c0a07;color:var(--text);border:none;padding:5px 12px;font:12px inherit;cursor:pointer;border-right:1px solid var(--edge)}
+.seg button:last-child{border-right:none}
+.seg button.on{background:linear-gradient(#b02a2a,#4a0a0a);color:var(--gold)}
+.note{border:1px solid #6a5a2a;background:#1a1408cc;border-radius:4px;padding:8px 10px;font-size:12px;color:#e8d9a8;margin:10px 0;line-height:1.5}
+.note.warn{border-color:#8a3a2a;background:#2a120e;color:#f0c0b0}
+/* presets */
+.presets{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.presets button{background:#0c0a07;border:1px solid var(--edge);color:var(--text);padding:6px 10px;border-radius:4px;cursor:pointer;font:12px inherit}
+.presets button.on{border-color:var(--gold);color:var(--gold);background:linear-gradient(#5a1a1a,#2a0808)}
+.presets button.active-ingame::after{content:" ●";color:var(--ok)}
+table.grid{border-collapse:collapse;font-size:12px}
+table.grid th,table.grid td{border:1px solid #2e2618;padding:4px 6px;text-align:center}
+table.grid th{color:var(--gold-dim);font-weight:normal;background:#1a160f}
+table.grid td.cls{text-align:left;font-weight:bold;white-space:nowrap}
+table.grid td.sub{text-align:left;white-space:nowrap;padding-left:22px;color:#ddd}
+table.grid tr.subrow td{background:#00000040}
+table.grid td.dflt{color:var(--muted);font-style:italic;font-size:11px;text-align:left;white-space:nowrap}
+table.grid td.dflt.ov{color:var(--gold-dim);font-style:normal}
+.pick.none{background:#2a2a2a;color:#aaa}
+.ricon{font-size:10px;margin-right:2px}
+.rolelist{border-collapse:collapse;font-size:12px;margin-top:6px}
+.rolelist td,.rolelist th{border:1px solid #2e2618;padding:4px 10px;text-align:left}
+.rolelist th{color:var(--gold-dim);font-weight:normal;background:#1a160f}
+.pick{width:26px;height:26px;border-radius:3px;border:2px solid transparent;cursor:pointer;display:inline-grid;place-items:center;font-size:11px;font-weight:bold;color:#fff;opacity:.35}
+.pick.on{opacity:1;border-color:var(--gold);box-shadow:0 0 5px var(--gold)}
+/* spells */
+.spellbook{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:6px}
+.spell{display:flex;align-items:center;gap:8px;padding:5px;background:#0c0a07;border:1px solid #2e2618;border-radius:4px;cursor:grab;font-size:12px}
+.spell:hover{border-color:var(--gold-dim)}
+.spell .ic{width:30px;height:30px;border-radius:3px;display:grid;place-items:center;font-weight:bold;color:#fff;border:1px solid #000;flex:none}
+.spell small{display:block;color:var(--muted);font-size:10px}
+.icon{display:grid;place-items:center;font-weight:bold;color:#fff}
+/* bindings */
+.keycaps{display:inline-flex;gap:6px}
+.keycaps button{font:bold 12px Georgia,serif;color:#ccc;background:linear-gradient(#4a4a52,#1c1c22);border:2px solid #8a8a94;border-bottom-width:4px;border-radius:5px;padding:5px 12px;cursor:pointer;position:relative;box-shadow:0 0 0 1px #000}
+.keycaps button.on{color:var(--gold);border-color:var(--gold);border-bottom-width:2px;margin-top:2px;background:linear-gradient(#6a1c1c,#2a0808)}
+.keycaps .bdg{position:absolute;right:-7px;top:-9px;min-width:16px;height:16px;border-radius:8px;background:#c9a227;color:#000;font-size:10px;line-height:16px;text-align:center;border:1px solid #000}
+.editing{color:var(--gold);font-size:13px}
+.brow{display:flex;align-items:center;gap:10px;padding:5px 8px;margin:4px 0;background:#00000066;border:1px solid #3a3a42;border-radius:3px}
+.brow.over{border-color:var(--gold);background:#2a220e}
+.brow .bl{min-width:90px;font-size:13px}
+.brow .ic{width:26px;height:26px;border-radius:3px;border:1px solid #000;font-size:11px;flex:none}
+.summary{font-size:12px;color:var(--muted);margin:10px 0;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.summary button{background:#000;border:1px solid #6a6a74;color:var(--text);border-radius:3px;padding:2px 8px;font:12px Georgia,serif;cursor:pointer}
+.summary button.on{border-color:var(--gold);color:var(--gold)}
+.bindgrid{border-collapse:collapse;font-size:12px;width:100%}
+.bindgrid th,.bindgrid td{border:1px solid #2e2618;padding:3px}
+.bindgrid th{background:#1a160f;color:var(--gold-dim);font-weight:normal;padding:6px}
+.bindgrid td.mod{color:#ddd;white-space:nowrap;padding:0 8px;background:#14110d}
+.bslot{min-height:34px;border:1px dashed #3a3020;border-radius:3px;display:flex;align-items:center;gap:5px;padding:2px 4px;cursor:pointer;font-size:11px;min-width:96px}
+.bslot:hover{border-color:var(--gold-dim)}
+.bslot.filled{border-style:solid;border-color:#4a3c20;background:#1a150c}
+.bslot.over{border-color:var(--gold);background:#2a220e}
+.bslot .ic{width:24px;height:24px;border-radius:3px;flex:none;font-size:10px}
+.bslot .x{margin-left:auto;color:#a55;cursor:pointer;font-size:12px;padding:0 3px}
+.kbd{display:inline-block;border:1px solid #6a5a3a;border-bottom-width:2px;border-radius:3px;padding:0 5px;font-size:11px;background:#221c12;margin:0 1px}
+.drawer{display:flex;gap:4px;flex-wrap:wrap;padding:6px;background:#0c0a07;border:1px solid #2e2618;border-radius:4px;margin-bottom:10px}
+.drawer .ic{width:30px;height:30px;border-radius:3px;cursor:grab;border:1px solid #000;font-size:11px}
+.legend{display:flex;gap:12px;font-size:11px;color:var(--muted);flex-wrap:wrap;margin-top:8px}
+.sw{display:inline-block;width:12px;height:12px;vertical-align:middle;margin-right:4px;border:1px solid #000}
+@media (max-width:700px){nav{width:110px}.row label{min-width:120px}}
+</style>
+</head>
+<body>
+<div class="scene-label">HEALER FOREVER — interactive mockup (not real game art). Hover frames to preview heals; drag frames to reorder; click the gold minimap button.</div>
+
+<!-- Minimap -->
+<div id="minimap"><div class="zone">Elwynn Forest</div>
+  <div id="pins"></div>
+  <div id="mmbtn" title="">
+    <span class="hf">HF</span>
+  </div>
+</div>
+
+<!-- Party frames -->
+<div id="party" class="horizontal">
+  <div class="handle">✥ Healer Forever — Party (drag to move)</div>
+  <div id="units"></div>
+</div>
+
+<!-- Options -->
+<div id="opts">
+  <div class="plate"><h1 style="margin:0;font-size:16px;color:var(--gold);font-weight:normal;text-shadow:1px 1px 1px #000">Healer Forever</h1></div>
+  <header id="optsHead"><span class="cls">● Paladin detected · Lv 60</span><button class="xbtn" id="closeOpts">✕</button></header>
+  <div class="obody">
+    <nav id="nav">
+      <button data-p="general" class="act">General</button>
+      <button data-p="buffs">Buff Presets</button>
+      <button data-p="spells">Class Spells</button>
+      <button data-p="binds">Click-Casting</button>
+      <button data-p="frames">Frames &amp; Bars</button>
+      <button data-p="auras">Buffs &amp; Debuffs</button>
+      <button data-p="api">Forever API Notes</button>
+    </nav>
+
+    <section class="pane act" id="p-general">
+      <h2>General</h2><p class="hint">Global behaviour. Everything is saved per character.</p>
+      <label class="chk"><input type="checkbox" checked> Show minimap button</label>
+      <label class="chk"><input type="checkbox" id="hideBlizz" checked> Hide default Blizzard party frames</label>
+      <label class="chk"><input type="checkbox" id="lockFrames"> Lock frames (hide move handle)</label>
+      <label class="chk"><input type="checkbox" checked> Show player (yourself) in the party frames</label>
+      <label class="chk"><input type="checkbox" checked> Show pets</label>
+      <label class="chk"><input type="checkbox" id="pinColor" checked> Class-coloured party pins on minimap</label>
+      <label class="chk"><input type="checkbox" id="pinEdge" checked> Show out-of-range pins at minimap edge</label>
+      <label class="chk"><input type="checkbox" id="resOnDead" checked> Click on a dead member = Resurrect (class res spell)</label>
+      <div class="row"><label>Group size</label><select><option>Party (5)</option><option disabled>Raid (later)</option></select></div>
+      <div class="row"><label>Active buff preset</label><select id="activePresetSel"></select></div>
+      <div class="row"><label>Profile</label><select><option>Thrall - Paladin</option><option>Default</option></select><button class="btn sec">Copy</button><button class="btn sec">Reset</button></div>
+      <div class="note">Minimap button: <span class="kbd">Left-click</span> options · <span class="kbd">Right-click</span> lock/unlock frames · <span class="kbd">Shift+Click</span> cycle buff preset.</div>
+    </section>
+
+    <section class="pane" id="p-buffs">
+      <h2>Buff Presets</h2><p class="hint">Choose which of your buffs each class should get. Switch presets for different groups. A pulsing button appears on a frame when that member is missing their assigned buff.</p>
+      <div class="row"><label>Preset:</label><select id="presetSel" style="min-width:220px"></select>
+        <button class="btn sec" id="newPreset">New</button><button class="btn sec" id="dupPreset">Duplicate</button><button class="btn sec" id="renPreset">Rename</button><button class="btn sec" id="delPreset">Delete</button><button class="btn" id="setActive">Make active</button></div>
+      <div class="row"><label>Self (you)</label><select id="selfSel"></select><span style="font-size:12px;color:var(--muted)">Blessing you put on yourself, regardless of class/role.</span></div>
+      <div class="row"><label>Preset name</label><input type="text" id="presetName"></div>
+      <table class="grid" id="buffGrid"></table>
+      <h2 style="margin-top:16px">Role buffs</h2><p class="hint">Extra targeted buffs, for example a tank-only oath. They appear as a second pulsing button on matching frames.</p>
+      <div id="rbList"></div>
+      <div class="row"><select id="rbSel"></select><button class="btn sec" id="rbAdd">+ Add role buff</button></div>
+      <h2 style="margin-top:16px">Group roles</h2><p class="hint">Roles are detected automatically; override them here if the guess is wrong.</p>
+      <table class="rolelist" id="roleList"></table>
+      <div class="row" style="margin-top:12px"><label>Buff button shows</label><select><option>Short (Blessing) on click</option><option>Greater (class-wide) on click</option><option>Left=short, Right=Greater</option></select></div>
+      <label class="chk"><input type="checkbox" checked> Warn when an assigned buff has &lt; 60s left</label>
+      <label class="chk"><input type="checkbox" checked> Hide buff buttons while in combat</label>
+      <p class="hint">Tip: you can also drag a blessing from <i>Class Spells</i> onto a class row.</p>
+    </section>
+
+    <section class="pane" id="p-spells">
+      <h2>Class Spells — Paladin</h2><p class="hint">Your class was detected automatically. Drag any spell onto a click-casting slot or a buff preset. You can also drag straight from the game spellbook.</p>
+      <div class="row"><button class="btn" id="openBook">Open Spellbook (P)</button><span style="font-size:12px;color:var(--muted)">Opens the game spellbook next to this window for drag &amp; drop.</span></div>
+      <div class="spellbook" id="spellbook"></div>
+    </section>
+
+    <section class="pane" id="p-binds">
+      <h2>Click-Casting</h2><p class="hint">Hover/click a party frame with a modifier + mouse button to cast on that member. Drag spells from the bar below into any slot, or click a slot to pick.</p>
+      <div class="drawer" id="drawer"></div>
+      <div class="row"><label>Modifier keys</label>
+        <div class="keycaps" id="keycaps"><button data-mod="Shift">⇧ Shift</button><button data-mod="Ctrl">⌃ Ctrl</button><button data-mod="Option">⌥ Option</button><button data-mod="Cmd">⌘ Cmd</button></div>
+        <span class="editing" id="editing"></span>
+        <label class="chk" style="margin-left:12px"><input type="checkbox" id="extraBtns"> Show mouse buttons 6–8</label>
+      </div>
+      <div id="bindList"></div>
+      <div class="summary" id="bindSummary"></div>
+      <div class="row"><label class="chk"><input type="checkbox" checked> Plain Left-click = target unit if empty</label><label class="chk"><input type="checkbox" checked> Plain Right-click = unit menu if empty</label></div>
+      <div class="note">Keyboard bindings over frames (e.g. <span class="kbd">F</span> while hovering = Flash of Light) can be added the same way. Cmd bindings are experimental and must be verified in-game. Mouse buttons 6+ are bound as hover keybindings because the game only reports buttons 1–5 as clicks.</div>
+    </section>
+
+    <section class="pane" id="p-frames">
+      <h2>Frames &amp; Bars</h2><p class="hint">Changes apply live to the frames behind this window.</p>
+      <div class="row"><label>Layout</label><div class="seg" id="layoutSeg"><button class="on" data-v="horizontal">Horizontal (pet below)</button><button data-v="vertical">Vertical (pet right)</button></div></div>
+      <div class="row"><label>Health bar colour</label><div class="seg" id="colorSeg"><button class="on" data-v="class">Class colours</button><button data-v="custom">Custom</button><button data-v="gradient">Health gradient</button></div><input type="color" id="customColor" value="#33cc55" style="display:none"></div>
+      <div class="row"><label>Frame width</label><input type="range" id="wR" min="100" max="240" value="180"><span id="wV">180</span></div>
+      <div class="row"><label>Health bar height</label><input type="range" id="hR" min="24" max="70" value="44"><span id="hV">44</span></div>
+      <label class="chk"><input type="checkbox" id="showPower" checked> Show mana / rage / energy bar</label>
+      <label class="chk"><input type="checkbox" id="showPred" checked> Show incoming heal (prediction overlay)</label>
+      <label class="chk"><input type="checkbox" id="showOver" checked> Show overheal amount past the bar edge</label>
+      <div class="row"><label>Health text</label><select id="hpText"><option value="pct">Percent</option><option value="cur">Current</option><option value="def">Deficit (-1234)</option><option value="none">None</option></select></div>
+      <div class="row"><label>Sort</label><select><option>Manual (drag order)</option><option>Role (Tank, Healer, DPS)</option><option>Class</option><option>Name</option></select></div>
+      <div class="legend"><span><i class="sw" style="background:var(--heal)"></i>Incoming heal</span><span><i class="sw" style="background:repeating-linear-gradient(45deg,#7dff9b 0 3px,#2f9e4a 3px 6px)"></i>Overheal</span></div>
+    </section>
+
+    <section class="pane" id="p-auras">
+      <h2>Buffs &amp; Debuffs</h2><p class="hint">What appears on each frame. Timers show minutes above 60s (e.g. <b>4m</b>) and seconds below (e.g. <b>42</b>); under 10s they turn red.</p>
+      <label class="chk"><input type="checkbox" id="showBuffs" checked> Show buffs</label>
+      <label class="chk"><input type="checkbox" id="tipDebuffs" checked> Show debuff list in hover tooltip</label>
+      <label class="chk"><input type="checkbox" id="tipBuffs"> Also list buffs</label>
+      <label class="chk"><input type="checkbox" id="onlyMine"> Only buffs cast by me</label>
+      <label class="chk"><input type="checkbox" id="showDebuffs" checked> Show debuffs</label>
+      <label class="chk"><input type="checkbox" id="onlyDispel"> Only debuffs I can dispel (Paladin: Magic, Poison, Disease)</label>
+      <label class="chk"><input type="checkbox" checked> Colour debuff border by type</label>
+      <div class="row"><label>Icon size</label><input type="range" id="icR" min="14" max="30" value="20"><span id="icV">20</span></div>
+      <div class="row"><label>Max buffs / debuffs</label><select><option>4 / 3</option><option>6 / 4</option><option>8 / 6</option></select></div>
+      <div class="legend"><span><i class="sw" style="background:var(--magic)"></i>Magic</span><span><i class="sw" style="background:var(--curse)"></i>Curse</span><span><i class="sw" style="background:var(--poison)"></i>Poison</span><span><i class="sw" style="background:var(--disease)"></i>Disease</span></div>
+    </section>
+
+    <section class="pane" id="p-api">
+      <h2>WoW Forever API notes</h2><p class="hint">WoW Forever runs on the modern (Midnight-era) addon API, so a few things work differently from old Classic addons.</p>
+      <div class="note">✅ <b>Fully supported:</b> custom party frames, class colours, moving and resizing, minimap button, click-casting through secure buttons, health and power bars, hiding Blizzard party frames, aura icons with countdowns.</div>
+      <div class="note warn">⚠️ <b>Restricted in combat ("secret values"):</b> during combat the addon can <i>display</i> health, heals and auras through Blizzard widgets but cannot <i>calculate</i> with them. So:<br>• Heal prediction and overheal use Blizzard's heal-prediction calculator, not addon arithmetic.<br>• Missing-buff buttons are reliable <b>out of combat</b>; in combat they freeze or hide.<br>• "Only dispellable debuffs" uses Blizzard's built-in dispel filter.<br>• Aura timers are drawn by Blizzard's duration/cooldown widgets.<br>• ⌘ (Cmd) as a click modifier must be verified in-game; ⌥ (Option) maps to Alt.</div>
+    </section>
+  </div>
+</div>
+
+<div id="mockbar">
+  <b>Mockup</b>
+  <span>Casting on hover:</span>
+  <button data-cast="0" class="on">None</button>
+  <button data-cast="900">Flash of Light (+900)</button>
+  <button data-cast="2400">Holy Light (+2400)</button>
+  <button id="combatBtn">Combat: off</button>
+  <button id="dmgBtn">Simulate damage</button>
+  <button id="killBtn">Kill random member</button>
+</div>
+<div class="tooltip" id="tt"></div>
+
+<script>
+const CLASS = {
+  Warrior:{c:'#C69B6D',p:'rage'}, Paladin:{c:'#F48CBA',p:'mana'}, Hunter:{c:'#AAD372',p:'mana'},
+  Rogue:{c:'#FFF468',p:'energy'}, Priest:{c:'#FFFFFF',p:'mana'}, Shaman:{c:'#0070DD',p:'mana'},
+  Mage:{c:'#3FC7EB',p:'mana'}, Warlock:{c:'#8788EE',p:'mana'}, Druid:{c:'#FF7C0A',p:'mana'}
+};
+const POWER = {mana:'#0000ff',rage:'#ff0000',energy:'#ffff00',focus:'#FF8040'};
+const BLESS = {
+  might:{n:'Blessing of Might',a:'Mi',c:'#b5442a'}, wisdom:{n:'Blessing of Wisdom',a:'Wi',c:'#3b6fd1'},
+  kings:{n:'Blessing of Kings',a:'Ki',c:'#a07de0'}, salv:{n:'Blessing of Salvation',a:'Sa',c:'#d9c46a'},
+  light:{n:'Blessing of Light',a:'Li',c:'#f0e07a'}, sanc:{n:'Blessing of Sanctuary',a:'Sn',c:'#8a8a8a'}
+};
+const SPELLS = [
+  {k:'fol',n:'Flash of Light',a:'FL',c:'#e8c050',t:'Heal · 1.5s cast'},
+  {k:'hl',n:'Holy Light',a:'HL',c:'#f6e27a',t:'Heal · 2.5s cast'},
+  {k:'hs',n:'Holy Shock',a:'HS',c:'#ffd76a',t:'Instant heal'},
+  {k:'loh',n:'Lay on Hands',a:'LH',c:'#fff4b0',t:'Full heal · 60 min CD'},
+  {k:'cleanse',n:'Cleanse',a:'Cl',c:'#6ad0ff',t:'Magic / Poison / Disease'},
+  {k:'purify',n:'Purify',a:'Pu',c:'#9ae0b0',t:'Poison / Disease'},
+  {k:'bop',n:'Blessing of Protection',a:'BP',c:'#c0c0ff',t:'Physical immunity'},
+  {k:'bof',n:'Blessing of Freedom',a:'BF',c:'#ffb070',t:'Removes snares'},
+  {k:'df',n:'Divine Favor',a:'DF',c:'#ffe0a0',t:'Next heal crits'},
+  ...Object.entries(BLESS).map(([k,b])=>({k,n:b.n,a:b.a,c:b.c,t:'Blessing · 5 min'})),
+  {k:'oath',n:'Oath of Light',a:'OL',c:'#ffe9a0',t:'Tank oath · 5 min'},
+  {k:'target',n:'Target unit',a:'◎',c:'#555',t:'Action'},{k:'menu',n:'Unit menu',a:'☰',c:'#555',t:'Action'}
+];
+const SP = Object.fromEntries(SPELLS.map(s=>[s.k,s]));
+
+/* ---------- party data ---------- */
+const now = ()=>performance.now()/1000;
+let T0 = now();
+const party = [
+  {id:'player',role:'H',roleSel:'auto',name:'Thrall (you)',cls:'Paladin',hp:3900,max:4200,pw:.72,auras:[['wisdom',260],['kings',95]],debuffs:[],pet:null},
+  {id:'p1',role:'T',roleSel:'auto',name:'Garrosh',cls:'Warrior',hp:4100,max:6800,pw:.45,auras:[['might',212]],debuffs:[{n:'Rend',t:'none',d:14},{n:'Sunder Armor',t:'none',d:28,st:3},{n:'Curse of Tongues',t:'curse',d:95},{n:'Corrosive Poison',t:'poison',d:22},{n:'Frost Fever',t:'disease',d:9.2}],pet:null},
+  {id:'p2',role:'D',roleSel:'auto',name:'Jaina',cls:'Mage',hp:2900,max:3200,pw:.88,auras:[['wisdom',41]],debuffs:[{n:'Frost Nova?',t:'magic',d:6}],pet:null},
+  {id:'p3',role:'D',roleSel:'auto',name:'Rexxar',cls:'Hunter',hp:2400,max:3900,pw:.6,auras:[['might',7]],debuffs:[{n:'Serpent poison',t:'poison',d:9}],pet:{name:'Misha',cls:'Hunter',hp:2100,max:3000}},
+  {id:'p4',role:'D',roleSel:'auto',name:'Gul\'dan',cls:'Warlock',hp:0,max:3400,pw:0,auras:[['kings',200]],debuffs:[{n:'Curse of Weakness',t:'curse',d:115},{n:'Plague',t:'disease',d:28}],pet:{name:'Voidwalker',cls:'Warlock',hp:3800,max:4100}},
+];
+const PINPOS={p1:[0,-18],p2:[-22,3],p3:[52,8],p4:[-5,23]};
+party.forEach(u=>{u.auras=u.auras.map(([k,d])=>({k,exp:T0+d}));u.debuffs.forEach(d=>d.exp=T0+d.d)});
+
+/* ---------- presets ---------- */
+const CLS_LIST = Object.keys(CLASS);
+let presets = [
+  {name:'5-man Dungeon',self:'rule',rbuffs:[{k:'oath',roles:{T:true,H:false,D:false,S:false},single:true}],roles:{'Warrior:T':'kings','Paladin:T':'might','Paladin:H':'wisdom'},map:{Warrior:'might',Paladin:'wisdom',Hunter:'might',Rogue:'might',Priest:'wisdom',Shaman:'wisdom',Mage:'wisdom',Warlock:'wisdom',Druid:'wisdom'}},
+  {name:'Raid — Group 1',self:'rule',rbuffs:[],roles:{},map:{Warrior:'kings',Paladin:'kings',Hunter:'kings',Rogue:'kings',Priest:'kings',Shaman:'kings',Mage:'kings',Warlock:'kings',Druid:'kings'}},
+  {name:'Raid — Group 2',self:'rule',rbuffs:[],roles:{},map:{Warrior:'light',Paladin:'light',Hunter:'light',Rogue:'light',Priest:'light',Shaman:'light',Mage:'light',Warlock:'light',Druid:'light'}},
+  {name:'Salv Duty',self:'rule',rbuffs:[],roles:{},map:{Warrior:'might',Paladin:'salv',Hunter:'salv',Rogue:'salv',Priest:'salv',Shaman:'salv',Mage:'salv',Warlock:'salv',Druid:'salv'}},
+];
+let editPreset=0, activePreset=0;
+const VALID={Warrior:['T','D'],Paladin:['T','H','D'],Hunter:['D'],Rogue:['D'],Priest:['H','D'],Shaman:['H','D'],Mage:['D'],Warlock:['D'],Druid:['T','H','D']};
+const ROLE={T:{i:'🛡',n:'Tank'},H:{i:'✚',n:'Healer'},D:{i:'⚔',n:'DPS'}};
+const effRole=u=>u.roleSel&&u.roleSel!=='auto'?u.roleSel:u.role;
+function roleBuffs(u){
+  const P=presets[activePreset],t=now(),r=effRole(u),out=[];
+  P.rbuffs.forEach(rb=>{
+    const self=u.id==='player'&&rb.roles.S, byRole=rb.roles[r];
+    if(!self&&!byRole)return;
+    const has=a=>a.k===rb.k&&a.exp>t;
+    const mine=u.auras.find(has);
+    if(mine&&mine.exp-t>=60)return;
+    if(rb.single&&party.some(m=>m!==u&&m.auras.some(has)))return;
+    out.push({k:rb.k,why:byRole?ROLE[r].n+' buff':'Self buff',single:rb.single});
+  });
+  return out;
+}
+function wantBuff(u){
+  const p=presets[activePreset];
+  if(u.id==='player'&&p.self!=='rule')return p.self==='none'?null:{k:p.self,why:'Self'};
+  const r=effRole(u),rk=u.cls+':'+r;
+  let k=VALID[u.cls].includes(r)&&p.roles[rk]!==undefined?p.roles[rk]:p.map[u.cls];
+  return k&&k!=='none'?{k,why:u.cls+' · '+ROLE[r].n}:null;
+}
+
+/* ---------- settings ---------- */
+const S = {layout:'horizontal',color:'class',custom:'#33cc55',w:180,h:44,ic:20,showPower:true,showPred:true,showOver:true,hpText:'pct',showBuffs:true,showDebuffs:true,onlyDispel:false,onlyMine:false,combat:false,cast:0};
+let order = party.map(u=>u.id);
+let hovered=null;
+
+function fmt(s){ if(s>=3600) return Math.floor(s/3600)+'h'; if(s>=60) return Math.ceil(s/60)+'m'; if(s>=10) return Math.floor(s)+''; return s.toFixed(1); }
+function hpColor(u){
+  if(S.color==='custom') return S.custom;
+  if(S.color==='gradient'){const p=u.hp/u.max;return p>.6?'#2ecc40':p>.3?'#e8c020':'#e03020';}
+  return CLASS[u.cls].c;
+}
+function dtColor(t){return {magic:'var(--magic)',curse:'var(--curse)',poison:'var(--poison)',disease:'var(--disease)'}[t]||'#b00';}
+const CAN_DISPEL = ['magic','poison','disease'];
+
+function frameHTML(u,isPet,owner){
+  const p=u.hp/u.max, dead=!isPet&&u.hp<=0, cst=u.cast&&now()<u.cast.end?u.cast:null;
+  let txt = S.hpText==='pct'?Math.round(p*100)+'%':S.hpText==='cur'?u.hp:S.hpText==='def'?(u.hp<u.max?'-'+(u.max-u.hp):''):'';
+  let pred='',over='',inc='';
+  if(!isPet && !dead && hovered===u.id && S.cast>0 && S.showPred){
+    const heal=Math.min(S.cast,u.max-u.hp), ov=S.cast-heal;
+    pred=`<div class="pred" style="left:${p*100}%;width:${heal/u.max*100}%"></div>`;
+    if(S.showOver && ov>0) over=`<div class="over" style="right:0;width:${Math.min(ov/u.max*100,30)}%"></div>`;
+    inc=`<div class="inc">+${heal}${ov>0&&S.showOver?' <span style="color:#fff8">('+ov+' over)</span>':''}</div>`;
+  }
+  const power = (!isPet && S.showPower)?`<div class="pw"><div class="fill" style="width:${u.pw*100}%;background:${POWER[CLASS[u.cls].p]}"></div></div>`:'';
+  let auras='';
+  if(!isPet){
+    const t=now();
+    const bf = S.showBuffs? u.auras.filter(a=>a.exp>t).map(a=>{const b=BLESS[a.k]||SP[a.k],r=a.exp-t;return `<div class="aura ${r<10?'short':''}" style="background:${b.c}" data-tip="${b.n}|${fmt(r)} remaining">${b.a}<span class="tm">${fmt(r)}</span></div>`}).join(''):'';
+    const db = S.showDebuffs? u.debuffs.filter(d=>d.exp>t && (!S.onlyDispel||CAN_DISPEL.includes(d.t))).slice(0,3).map(d=>{const r=d.exp-t;return `<div class="aura deb ${r<10?'short':''}" style="--dt:${dtColor(d.t)};background:#3a0a0a;border-color:${dtColor(d.t)}" data-tip="${d.n}|${d.t==='none'?'Physical':d.t[0].toUpperCase()+d.t.slice(1)} · ${fmt(r)} left">${d.n[0]}<span class="tm">${fmt(r)}</span></div>`}).join(''):'';
+    auras=`<div class="auras"><div class="grp">${bf}</div><div class="grp">${db}</div></div>`;
+  }
+  // missing buff button
+  let need='',rbn='';
+  if(!isPet){
+    const w=wantBuff(u), t=now();
+    const has=w&&u.auras.find(a=>a.k===w.k && a.exp>t);
+    if(!dead&&!S.combat)roleBuffs(u).forEach((x,i)=>{const b=SP[x.k];rbn+=`<div class="needbuff rb" style="background:${b.c};color:#000;right:${18+i*28}px" data-rbuff="${u.id}:${x.k}" data-tip="Missing: ${b.n} (${x.why})|Click to cast on ${u.name.replace(' (you)','')}">${b.a}</div>`});
+    if(dead){need=cst?'':`<div class="resbadge" data-tip="Redemption|Click to resurrect ${u.name.replace(' (you)','')}">✝</div>`;}
+    else if(w && (!has || has.exp-t<60) && !(S.combat)){const b=BLESS[w.k];need=`<div class="needbuff" style="background:${b.c}" data-buff="${u.id}" data-tip="Missing: ${b.n} (${w.why})|Click to cast on ${u.name.replace(' (you)','')}">${b.a}</div>`;}
+  }
+  const castbar=cst?`<div class="castbar"><i style="width:${Math.min(100,(now()-cst.start)/2*100)}%"></i><span>Redemption…</span></div>`:'';
+  return `<div class="uf${dead?' dead':''}" data-u="${owner||u.id}" data-pet="${isPet?1:0}">${need}${rbn||''}${castbar}<div class="hp"><div class="fill" style="width:${p*100}%;background:${hpColor(u)}"></div>${pred}${over}<div class="name" style="color:${S.color==='class'?'#fff':CLASS[u.cls].c}">${isPet?'':`<span class="ricon" style="color:${effRole(u)==='H'?'#7dff9b':effRole(u)==='T'?'#8ab4ff':'#ffb0a0'}">${ROLE[effRole(u)].i}</span>`}${u.name}</div><div class="val">${txt}</div>${inc}${dead?'<div class="deadtxt">DEAD</div>':''}</div>${power}${auras}</div>`;
+}
+function render(){
+  const box=document.getElementById('units');
+  box.innerHTML=order.map(id=>{const u=party.find(x=>x.id===id);
+    return `<div class="slot" draggable="true" data-id="${id}">${frameHTML(u,false)}${u.pet?`<div class="pet">${frameHTML(u.pet,true,u.id)}</div>`:''}</div>`}).join('');
+  const P=document.getElementById('party');
+  P.className=S.layout; P.style.setProperty('--w',S.w+'px');P.style.setProperty('--h',S.h+'px');P.style.setProperty('--ic',S.ic+'px');
+  if(document.getElementById('lockFrames').checked) P.classList.add('locked');
+}
+setInterval(render,250);
+const pinEls={},pinOff={};
+const PIN_R=72,PIN_YD=40;
+function renderPins(drift){
+  const box=document.getElementById('pins');
+  const cls=document.getElementById('pinColor').checked, edge=document.getElementById('pinEdge').checked;
+  party.forEach(u=>{
+    const base=PINPOS[u.id];if(!base)return;
+    let el=pinEls[u.id];
+    if(!el){el=pinEls[u.id]=document.createElement('div');el.className='pin';box.appendChild(el);pinOff[u.id]=[0,0]}
+    if(drift){pinOff[u.id]=[(Math.random()-.5)*3,(Math.random()-.5)*3]}
+    const dx=base[0]+pinOff[u.id][0], dy=base[1]+pinOff[u.id][1], d=Math.hypot(dx,dy);
+    const out=d>PIN_YD;
+    if(out&&!edge){el.style.display='none';return}
+    el.style.display='';
+    const k=out?PIN_R/d:PIN_R/PIN_YD, r=79;
+    el.style.left=(r+dx*k)+'px';el.style.top=(r+dy*k)+'px';
+    const dead=u.hp<=0;
+    el.className='pin'+(dead?' dead':'')+(out?' edge':'');
+    el.style.setProperty('--pc',cls?CLASS[u.cls].c:'#5ab0ff');
+    el.dataset.tip=u.name+'|'+u.cls+(dead?' · Dead':'')+(out?' · Out of range':'');
+  });
+}
+setInterval(()=>renderPins(true),1000);
+setInterval(()=>renderPins(false),250);
+['pinColor','pinEdge'].forEach(i=>document.getElementById(i).onchange=()=>renderPins(false));
+
+/* ---------- hover / tooltips / drag reorder ---------- */
+const tt=document.getElementById('tt');
+const held={shift:false,ctrl:false,alt:false,meta:false};
+let lastEvt=null, tipUF=null;
+function setHeld(e){held.shift=!!e.shiftKey;held.ctrl=!!e.ctrlKey;held.alt=!!e.altKey;held.meta=!!e.metaKey}
+function heldMods(){const m=[];if(held.shift)m.push('Shift');if(held.ctrl)m.push('Ctrl');if(held.alt)m.push('Option');if(held.meta)m.push('Cmd');return m}
+const MOD_LBL={Option:'⌥ Option',Cmd:'⌘ Cmd',Shift:'⇧ Shift',Ctrl:'⌃ Ctrl'};
+function renderTip(){
+  if(!lastEvt)return;const e=lastEvt;
+  const el=e.target instanceof Element?e.target:null;
+  const tipEl=el&&el.closest('[data-tip]'), uf=el&&el.closest('.uf');
+  hovered = uf && uf.dataset.pet==='0' ? uf.dataset.u : null;
+  tipUF=null;
+  if(tipEl){const [a,b]=tipEl.dataset.tip.split('|');tt.innerHTML=`<div class="t">${a}</div><div class="m">${b||''}</div>`;tt.style.display='block';}
+  else if(uf){const u=party.find(x=>x.id===uf.dataset.u);const tgt=uf.dataset.pet==='1'?u.pet:u;tipUF=uf;
+    tt.innerHTML=`<div class="t" style="color:${CLASS[tgt.cls].c}">${tgt.name}</div><div class="m">${uf.dataset.pet==='1'?'Pet':tgt.cls} · ${tgt.hp} / ${tgt.max}</div>${uf.dataset.pet==='0'?auraSection(tgt):''}${uf.dataset.pet==='0'&&tgt.hp<=0&&resOn()?deadTip(tgt):`${bindSection()}<div class="m" style="margin-top:4px;font-size:11px">Hold Shift / Ctrl / ⌥ / ⌘ to see other bindings</div>`}`;tt.style.display='block';}
+  else if(el&&el.closest('#mmbtn')){tt.innerHTML=`<div class="t">Healer Forever</div><div class="g">Left-click: open options</div><div class="g">Right-click: lock / unlock frames</div><div class="g">Shift+click: next buff preset</div><div class="m">Active preset: ${presets[activePreset].name}</div>`;tt.style.display='block';}
+  else tt.style.display='none';
+  tt.style.left=Math.min(e.clientX+14,innerWidth-270)+'px';tt.style.top=(e.clientY+14)+'px';
+}
+document.addEventListener('mousemove',e=>{setHeld(e);lastEvt=e;renderTip()});
+function onKey(e){if(!['Shift','Control','Alt','Meta'].includes(e.key))return;setHeld(e);if(tipUF)renderTip()}
+document.addEventListener('keydown',onKey);document.addEventListener('keyup',onKey);
+window.addEventListener('blur',()=>{held.shift=held.ctrl=held.alt=held.meta=false;if(tipUF)renderTip()});
+const TCOL={magic:'#3c8cff',curse:'#a43cff',poison:'#2fb84a',disease:'#b07a30',none:'#e04040'};
+const TNAME={magic:'Magic',curse:'Curse',poison:'Poison',disease:'Disease',none:'Physical'};
+function auraSection(u){
+  const t=now(),out=[];
+  if(document.getElementById('tipDebuffs').checked){
+    const ds=u.debuffs.filter(d=>d.exp>t).map(d=>({...d,r:d.exp-t,disp:CAN_DISPEL.includes(d.t)})).sort((a,b)=>b.disp-a.disp||a.r-b.r);
+    if(ds.length)out.push(`<div class="y" style="margin-top:4px">Debuffs (${ds.length})</div>`+ds.map(d=>`<div class="trow"><i class="ti" style="background:${TCOL[d.t]}"></i><span style="color:#fff">${d.n}${d.st>1?' x'+d.st:''}</span><span style="color:${TCOL[d.t]}">${TNAME[d.t]}</span>${d.disp?'<span class="g">✓ dispel</span>':''}<span class="tr">${fmt(d.r)}</span></div>`).join(''));
+  }
+  if(document.getElementById('tipBuffs').checked){
+    const bs=u.auras.filter(a=>a.exp>t).map(a=>({k:a.k,r:a.exp-t})).sort((a,b)=>a.r-b.r);
+    if(bs.length)out.push(`<div class="y" style="margin-top:4px">Buffs (${bs.length})</div>`+bs.map(b=>{const x=BLESS[b.k]||SP[b.k];return `<div class="trow"><i class="ti" style="background:${x.c}"></i><span style="color:#fff">${x.n}</span><span class="tr">${fmt(b.r)}</span></div>`}).join(''));
+  }
+  return out.join('');
+}
+setInterval(()=>{if(tipUF)renderTip()},250);
+function resOn(){return document.getElementById('resOnDead').checked}
+function deadTip(u){return `<div style="margin-top:4px;color:#f55">Dead — any click casts:</div>${btns().filter(b=>Object.keys(binds).some(k=>SP[binds[k]]&&k.slice(k.indexOf('|')+1)===b)).map(b=>`<div class="m">${b.replace('Button','Mouse ')} — <span style="color:#fff">Redemption</span></div>`).join('')}<div class="m" style="margin-top:4px;font-size:11px">Class res spell is used automatically: Paladin Redemption, Priest Resurrection, Shaman Ancestral Spirit, Druid Rebirth</div>`}
+function bindSection(){const b=bindSummary();return b?`<div style="margin-top:4px" class="y">${heldLabel()}</div>${b}`:''}
+function heldLabel(){const m=heldMods();return m.length?m.map(x=>MOD_LBL[x]).join(' + '):'No modifier'}
+function bindModSet(k){const i=k.indexOf('|');if(i<0)return [];const m=k.slice(0,i);return m==='None'?[]:m.split('+')}
+function bindSummary(){
+  const want=heldMods().sort().join('+'), out=[];
+  const order_=btns();
+  const keys=Object.keys(binds).filter(k=>bindModSet(k).slice().sort().join('+')===want);
+  const btnOf=k=>k.slice(k.indexOf('|')+1);
+  keys.sort((a,b)=>order_.indexOf(btnOf(a))-order_.indexOf(btnOf(b)));
+  for(const k of keys){const b=btnOf(k);if(!order_.includes(b))continue;const s=SP[binds[k]];if(s)out.push(`<div class="m">${b.replace('Button','Mouse ')} — <span style="color:#fff">${s.n}</span></div>`);}
+  return out.join('');
+}
+let dragId=null;
+document.getElementById('units').addEventListener('dragstart',e=>{const s=e.target.closest('.slot');dragId=s.dataset.id;s.classList.add('dragging')});
+document.getElementById('units').addEventListener('dragover',e=>{e.preventDefault();document.querySelectorAll('.slot').forEach(s=>s.classList.remove('dropover'));const s=e.target.closest('.slot');if(s)s.classList.add('dropover')});
+document.getElementById('units').addEventListener('drop',e=>{e.preventDefault();const s=e.target.closest('.slot');if(!s||!dragId)return;const a=order.indexOf(dragId),b=order.indexOf(s.dataset.id);order.splice(a,1);order.splice(b,0,dragId);dragId=null;render()});
+document.getElementById('units').addEventListener('dragend',()=>{dragId=null;render()});
+document.getElementById('units').addEventListener('click',e=>{
+  const rbb=e.target.closest('[data-rbuff]');
+  if(rbb){const [id,k]=rbb.dataset.rbuff.split(':');const u=party.find(x=>x.id===id);const rb=presets[activePreset].rbuffs.find(x=>x.k===k);
+    if(rb&&rb.single)party.forEach(m=>m.auras=m.auras.filter(a=>a.k!==k));else u.auras=u.auras.filter(a=>a.k!==k);
+    u.auras.push({k,exp:now()+300});render();return;}
+  const nb=e.target.closest('[data-buff]');
+  if(nb){const u=party.find(x=>x.id===nb.dataset.buff);const w=wantBuff(u);if(!w)return;const want=w.k;u.auras=u.auras.filter(a=>a.k!==want);u.auras.push({k:want,exp:now()+300});render();return;}
+  const uf=e.target.closest('.uf');if(!uf)return;
+  const u=party.find(x=>x.id===uf.dataset.u);
+  if(uf.dataset.pet==='0' && u.hp<=0 && resOn()){
+    if(!u.cast){u.cast={start:now(),end:now()+2};render();setTimeout(()=>{u.cast=null;u.hp=Math.round(u.max*.35);u.auras=[];u.debuffs=[];render()},2000);}
+    return;
+  }
+  if(S.cast>0 && uf.dataset.pet==='0'){u.hp=Math.min(u.max,u.hp+S.cast);}
+  document.querySelectorAll('.uf').forEach(x=>x.classList.remove('targeted'));uf.classList.add('targeted');
+});
+// move whole group by handle
+function draggable(handle,el,center){handle.addEventListener('mousedown',e=>{if(e.target.closest('button'))return;const r=el.getBoundingClientRect();const ox=e.clientX-r.left,oy=e.clientY-r.top;
+  if(center){el.style.transform='none';el.style.left=r.left+'px';el.style.top=r.top+'px';}
+  const mv=ev=>{el.style.left=(ev.clientX-ox)+'px';el.style.top=(ev.clientY-oy)+'px'};const up=()=>{removeEventListener('mousemove',mv);removeEventListener('mouseup',up)};addEventListener('mousemove',mv);addEventListener('mouseup',up)})}
+draggable(document.querySelector('#party .handle'),document.getElementById('party'));
+draggable(document.getElementById('optsHead'),document.getElementById('opts'),true);
+
+/* ---------- minimap button ---------- */
+const opts=document.getElementById('opts');
+document.getElementById('mmbtn').addEventListener('click',e=>{if(e.shiftKey){activePreset=(activePreset+1)%presets.length;buildPresets();return;}opts.classList.toggle('open')});
+document.getElementById('mmbtn').addEventListener('contextmenu',e=>{e.preventDefault();const c=document.getElementById('lockFrames');c.checked=!c.checked;render()});
+document.getElementById('closeOpts').onclick=()=>opts.classList.remove('open');
+document.getElementById('nav').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;document.querySelectorAll('#nav button').forEach(x=>x.classList.toggle('act',x===b));document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('act',p.id==='p-'+b.dataset.p))});
+
+/* ---------- buff presets UI ---------- */
+function buildPresets(){
+  document.getElementById('presetSel').innerHTML=presets.map((p,i)=>`<option value="${i}" ${i===editPreset?'selected':''}>${i+1}. ${p.name}${i===activePreset?' (active)':''}</option>`).join('');
+  document.getElementById('delPreset').disabled=presets.length<2;
+  document.getElementById('delPreset').textContent='Delete';
+  if(delTimer){clearTimeout(delTimer);delTimer=null}
+  document.getElementById('presetName').value=presets[editPreset].name;
+  const keys=Object.keys(BLESS);
+  const P=presets[editPreset];
+  const pk=(c,r,k,on)=>`<span class="pick ${k==='none'?'none ':''}${on?'on':''}" data-c="${c}" data-r="${r}" data-k="${k}" ${k==='none'?'':`style="background:${BLESS[k].c}"`} title="${k==='none'?'None':BLESS[k].n}">${k==='none'?'∅':BLESS[k].a}</span>`;
+  const all=[...keys,'none'];
+  document.getElementById('buffGrid').innerHTML=`<tr><th>Class / role</th>${keys.map(k=>`<th>${BLESS[k].n.replace('Blessing of ','')}</th>`).join('')}<th>None</th><th></th></tr>`+
+    CLS_LIST.map(c=>`<tr data-c="${c}" data-r=""><td class="cls" style="color:${CLASS[c].c}">${c} <small style="color:var(--muted);font-weight:normal">default</small></td>${all.map(k=>`<td>${pk(c,'',k,P.map[c]===k)}</td>`).join('')}<td></td></tr>`+
+      VALID[c].map(r=>{const rk=c+':'+r,ov=P.roles[rk]!==undefined;return `<tr class="subrow" data-c="${c}" data-r="${r}"><td class="sub">↳ ${ROLE[r].i} ${ROLE[r].n}</td>${all.map(k=>`<td>${pk(c,r,k,ov&&P.roles[rk]===k)}</td>`).join('')}<td class="dflt ${ov?'ov':''}">${ov?'override':'= default'}</td></tr>`}).join('')).join('');
+  document.getElementById('rbList').innerHTML=P.rbuffs.length?P.rbuffs.map((rb,i)=>{const sp=SP[rb.k];return `<div class="brow" data-i="${i}"><div class="ic icon" style="background:${sp.c}">${sp.a}</div><div class="bl" style="min-width:110px">${sp.n}</div>${[['T','🛡 Tank'],['H','✚ Healer'],['D','⚔ DPS'],['S','Self']].map(([r,l])=>`<label class="chk" style="margin:0"><input type="checkbox" data-r="${r}" ${rb.roles[r]?'checked':''}> ${l}</label>`).join('')}<label class="chk" style="margin:0 0 0 auto"><input type="checkbox" data-single ${rb.single?'checked':''}> One target at a time</label><button class="xbtn" style="position:static" data-del="${i}">✕</button></div>`}).join(''):'<p class="hint">No role buffs in this preset.</p>';
+  document.getElementById('rbSel').innerHTML=SPELLS.filter(x=>!['target','menu'].includes(x.k)).map(x=>`<option value="${x.k}">${x.n}</option>`).join('');
+  document.getElementById('selfSel').innerHTML=`<option value="rule">Use class/role rule</option>`+keys.map(k=>`<option value="${k}">${BLESS[k].n}</option>`).join('')+`<option value="none">None</option>`;
+  document.getElementById('selfSel').value=P.self;
+  document.getElementById('roleList').innerHTML=`<tr><th>Member</th><th>Detected</th><th>Role</th></tr>`+party.map(u=>`<tr><td style="color:${CLASS[u.cls].c}">${u.name}</td><td>${ROLE[u.role].i} ${ROLE[u.role].n}</td><td><select data-role="${u.id}">${['auto','T','H','D'].map(r=>`<option value="${r}" ${u.roleSel===r?'selected':''}>${r==='auto'?'Auto':ROLE[r].n}</option>`).join('')}</select></td></tr>`).join('');
+  document.getElementById('activePresetSel').innerHTML=presets.map((p,i)=>`<option value="${i}" ${i===activePreset?'selected':''}>${i+1}. ${p.name}</option>`).join('');
+}
+const clonePreset=p=>({name:p.name,self:p.self,rbuffs:p.rbuffs.map(r=>({k:r.k,single:r.single,roles:{...r.roles}})),roles:{...p.roles},map:{...p.map}});
+document.getElementById('presetSel').onchange=e=>{editPreset=+e.target.value;buildPresets()};
+document.getElementById('newPreset').onclick=()=>{presets.push({name:'Preset '+(presets.length+1),self:'rule',rbuffs:[],roles:{},map:Object.fromEntries(CLS_LIST.map(c=>[c,'none']))});editPreset=presets.length-1;buildPresets()};
+document.getElementById('dupPreset').onclick=()=>{const c=clonePreset(presets[editPreset]);c.name+=' (copy)';presets.splice(editPreset+1,0,c);if(activePreset>editPreset)activePreset++;editPreset++;buildPresets()};
+document.getElementById('renPreset').onclick=()=>{const n=document.getElementById('presetName');n.focus();n.select()};
+let delTimer=null;
+document.getElementById('delPreset').onclick=e=>{
+  const b=e.target;if(presets.length<2)return;
+  if(!delTimer){b.textContent='Confirm delete?';delTimer=setTimeout(()=>{delTimer=null;b.textContent='Delete'},3000);return}
+  clearTimeout(delTimer);delTimer=null;
+  presets.splice(editPreset,1);
+  if(activePreset===editPreset)activePreset=0;else if(activePreset>editPreset)activePreset--;
+  editPreset=Math.min(editPreset,presets.length-1);buildPresets();render();
+};
+document.getElementById('buffGrid').addEventListener('click',e=>{const p=e.target.closest('.pick');if(!p)return;const P=presets[editPreset],c=p.dataset.c,r=p.dataset.r,k=p.dataset.k;
+  if(r){const rk=c+':'+r;if(P.roles[rk]===k)delete P.roles[rk];else P.roles[rk]=k;}else P.map[c]=P.map[c]===k?'none':k;
+  buildPresets();render()});
+document.getElementById('rbAdd').onclick=()=>{presets[editPreset].rbuffs.push({k:document.getElementById('rbSel').value,roles:{T:true,H:false,D:false,S:false},single:false});buildPresets();render()};
+document.getElementById('rbList').addEventListener('change',e=>{const row=e.target.closest('.brow');if(!row)return;const rb=presets[editPreset].rbuffs[+row.dataset.i];if(e.target.dataset.r)rb.roles[e.target.dataset.r]=e.target.checked;else if('single' in e.target.dataset)rb.single=e.target.checked;render()});
+document.getElementById('rbList').addEventListener('click',e=>{const d=e.target.closest('[data-del]');if(!d)return;presets[editPreset].rbuffs.splice(+d.dataset.del,1);buildPresets();render()});
+document.getElementById('selfSel').onchange=e=>{presets[editPreset].self=e.target.value;render()};
+document.getElementById('roleList').addEventListener('change',e=>{const id=e.target.dataset.role;if(!id)return;party.find(x=>x.id===id).roleSel=e.target.value;render()});
+document.getElementById('presetName').oninput=e=>{presets[editPreset].name=e.target.value;buildPresets();document.getElementById('presetName').focus()};
+document.getElementById('setActive').onclick=()=>{activePreset=editPreset;buildPresets();render()};
+document.getElementById('activePresetSel').onchange=e=>{activePreset=+e.target.value;buildPresets();render()};
+document.getElementById('buffGrid').addEventListener('dragover',e=>e.preventDefault());
+document.getElementById('buffGrid').addEventListener('drop',e=>{const k=e.dataTransfer.getData('spell');const row=e.target.closest('tr');if(!BLESS[k]||!row||!row.dataset.c)return;const P=presets[editPreset];if(row.dataset.r)P.roles[row.dataset.c+':'+row.dataset.r]=k;else P.map[row.dataset.c]=k;buildPresets();render()});
+
+/* ---------- spellbook ---------- */
+function icon(s,size){return `<div class="ic icon" draggable="true" data-spell="${s.k}" style="background:${s.c};${size?`width:${size}px;height:${size}px`:''}" data-tip="${s.n}|${s.t}">${s.a}</div>`}
+document.getElementById('spellbook').innerHTML=SPELLS.filter(s=>!['target','menu'].includes(s.k)).map(s=>`<div class="spell" draggable="true" data-spell="${s.k}">${icon(s)}<div>${s.n}<small>${s.t}</small></div></div>`).join('');
+document.getElementById('drawer').innerHTML=SPELLS.map(s=>icon(s)).join('');
+document.addEventListener('dragstart',e=>{const s=e.target.closest('[data-spell]');if(s)e.dataTransfer.setData('spell',s.dataset.spell)});
+document.getElementById('openBook').onclick=()=>{document.querySelector('[data-p=spells]').click();alertless('In-game this opens the Spellbook (ToggleSpellBook) beside the options window.')};
+function alertless(msg){tt.innerHTML=`<div class="y">${msg}</div>`;tt.style.display='block';setTimeout(()=>tt.style.display='none',2500)}
+
+/* ---------- click-casting grid ---------- */
+let binds={'Left':'fol','Right':'hl','Shift|Left':'cleanse','Shift|Right':'bof','Ctrl|Left':'hs','Ctrl|Right':'bop','Option|Left':'df','Cmd|Right':'loh','Middle':'kings','Button4':'wisdom','Button5':'might'};
+const MOD_ORDER=['Shift','Ctrl','Option','Cmd'];
+binds=Object.fromEntries(Object.entries(binds).map(([k,v])=>{const i=k.indexOf('|');if(i<0)return [k,v];const ms=k.slice(0,i).split('+');return [MOD_ORDER.filter(m=>ms.includes(m)).join('+')+'|'+k.slice(i+1),v]}));
+const curMods=new Set();
+const curStr=()=>MOD_ORDER.filter(m=>curMods.has(m)).join('+')||'None';
+const comboLabel=m=>m==='None'?'No modifier':m.split('+').map(x=>MOD_LBL[x]).join(' + ');
+function btns(){return ['Left','Right','Middle','Button4','Button5',...(document.getElementById('extraBtns').checked?['Button6','Button7','Button8']:[])]}
+function key(m,b){return m==='None'?b:m+'|'+b}
+function modOf(k){const i=k.indexOf('|');return i<0?'None':k.slice(0,i)}
+function buildBinds(){
+  const m=curStr();
+  document.querySelectorAll('#keycaps button').forEach(b=>{b.classList.toggle('on',curMods.has(b.dataset.mod));
+    const n=Object.keys(binds).filter(k=>SP[binds[k]]&&modOf(k)===b.dataset.mod).length;b.querySelector('.bdg')?.remove();
+    if(n){const sp=document.createElement('span');sp.className='bdg';sp.textContent=n;b.appendChild(sp)}});
+  document.getElementById('editing').textContent='Editing: '+comboLabel(m);
+  document.getElementById('bindList').innerHTML=btns().map(b=>{const k=key(m,b),cur=binds[k],s=SP[cur];
+    const opts=SPELLS.filter(x=>x.k!=='menu'||(m==='None'&&b==='Right'));
+    return `<div class="brow" data-k="${k}"><div class="bl">${b.replace('Button','Mouse ')}${/[678]/.test(b)?' <small style="color:var(--muted)">(hover key)</small>':''}</div><select data-k="${k}"><option value="">— none —</option>${opts.map(x=>`<option value="${x.k}" ${x.k===cur?'selected':''}>${x.n}</option>`).join('')}</select>${s?`<div class="ic icon" style="background:${s.c}" data-tip="${s.n}|${s.t}">${s.a}</div>`:''}</div>`}).join('');
+  const counts={};Object.keys(binds).forEach(k=>{if(SP[binds[k]]){const mm=modOf(k);counts[mm]=(counts[mm]||0)+1}});
+  const list=Object.keys(counts).sort((a,b)=>(a==='None'?-1:b==='None'?1:a.split('+').length-b.split('+').length||a.localeCompare(b)));
+  document.getElementById('bindSummary').innerHTML='Configured combos: '+(list.length?list.map(c=>`<button data-c="${c}" class="${c===m?'on':''}">${comboLabel(c)} (${counts[c]})</button>`).join(''):'none');
+}
+document.getElementById('keycaps').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const m=b.dataset.mod;curMods.has(m)?curMods.delete(m):curMods.add(m);buildBinds()});
+document.getElementById('bindSummary').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;curMods.clear();if(b.dataset.c!=='None')b.dataset.c.split('+').forEach(x=>curMods.add(x));buildBinds()});
+document.getElementById('extraBtns').onchange=buildBinds;
+const bl=document.getElementById('bindList');
+bl.addEventListener('change',e=>{const k=e.target.dataset.k;if(!k)return;if(e.target.value)binds[k]=e.target.value;else delete binds[k];buildBinds()});
+bl.addEventListener('dragover',e=>{const r=e.target.closest('.brow');if(r){e.preventDefault();r.classList.add('over')}});
+bl.addEventListener('dragleave',e=>{const r=e.target.closest('.brow');if(r)r.classList.remove('over')});
+bl.addEventListener('drop',e=>{const r=e.target.closest('.brow');if(!r)return;e.preventDefault();const sp=e.dataTransfer.getData('spell');if(!SP[sp])return;if(sp==='menu'&&r.dataset.k!=='Right'){buildBinds();return}binds[r.dataset.k]=sp;buildBinds()});
+
+/* ---------- frames & aura settings ---------- */
+function seg(id,fn){document.getElementById(id).addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;document.querySelectorAll('#'+id+' button').forEach(x=>x.classList.toggle('on',x===b));fn(b.dataset.v);render()})}
+seg('layoutSeg',v=>S.layout=v);
+seg('colorSeg',v=>{S.color=v;document.getElementById('customColor').style.display=v==='custom'?'inline-block':'none'});
+document.getElementById('customColor').oninput=e=>{S.custom=e.target.value;render()};
+[['wR','wV','w'],['hR','hV','h'],['icR','icV','ic']].forEach(([r,v,k])=>document.getElementById(r).oninput=e=>{S[k]=+e.target.value;document.getElementById(v).textContent=e.target.value;render()});
+['showPower','showPred','showOver','showBuffs','showDebuffs','onlyDispel','onlyMine'].forEach(k=>document.getElementById(k).onchange=e=>{S[k]=e.target.checked;render()});
+document.getElementById('hpText').onchange=e=>{S.hpText=e.target.value;render()};
+document.getElementById('lockFrames').onchange=render;
+
+/* ---------- mockup bar ---------- */
+document.querySelectorAll('[data-cast]').forEach(b=>b.onclick=()=>{S.cast=+b.dataset.cast;document.querySelectorAll('[data-cast]').forEach(x=>x.classList.toggle('on',x===b))});
+document.getElementById('combatBtn').onclick=e=>{S.combat=!S.combat;e.target.textContent='Combat: '+(S.combat?'ON':'off');e.target.classList.toggle('on',S.combat);render()};
+document.getElementById('dmgBtn').onclick=()=>{party.forEach(u=>{if(u.hp>0)u.hp=Math.max(1,u.hp-Math.round(Math.random()*u.max*.35));if(u.pet)u.pet.hp=Math.max(1,u.pet.hp-Math.round(Math.random()*800))});render()};
+
+document.getElementById('killBtn').onclick=()=>{const a=party.filter(u=>u.hp>0);if(a.length){const u=a[Math.floor(Math.random()*a.length)];u.hp=0;u.cast=null;render()}};
+buildPresets();buildBinds();render();renderPins(false);
+</script>
+</body>
+</html>

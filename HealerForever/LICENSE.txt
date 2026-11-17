@@ -1,0 +1,21 @@
+Healer Forever
+Copyright (c) 2026 trtg. All rights reserved.
+
+Permission is granted to download Healer Forever and use it to play World of Warcraft.
+
+You may read the source code, as Blizzard's AddOn development policy requires add-on code to
+remain readable. Reading the code does not grant any further rights.
+
+You may not copy, modify, redistribute, republish or sell Healer Forever, or any part of it, and
+you may not use it to create derivative works, without prior written permission from the author.
+
+Contact: healer.forever.trtg@gmail.com
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+World of Warcraft is a trademark of Blizzard Entertainment, Inc. Healer Forever is not affiliated
+with or endorsed by Blizzard Entertainment.

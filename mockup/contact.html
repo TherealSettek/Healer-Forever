@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Healer Forever Contact</title>
+<style>
+:root{--gold:#ffd100;--gold-dim:#c9a227;--muted:#9a927e;--text:#e8e2d0}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font-family:"Friz Quadrata TT",Georgia,"Times New Roman",serif;color:var(--text);background:radial-gradient(ellipse at 30% 70%,#3b4a2a 0%,#1f2a18 35%,#0d120b 70%),#0d120b;padding:16px}
+a{color:var(--gold)}
+h1{margin:0 0 4px;font-size:20px;color:var(--gold);font-weight:normal;text-shadow:1px 1px 1px #000}
+.sub{font-size:12px;color:#ffffffa0;margin-bottom:6px}
+.cards{display:grid;gap:50px 18px;grid-template-columns:repeat(auto-fit,minmax(440px,1fr));margin-top:44px;align-items:start}
+.opt h2{margin:0 0 2px;font-size:15px;color:var(--gold);font-weight:normal}
+.opt .desc{font-size:12px;color:var(--muted);margin-bottom:40px;min-height:30px}
+.win{position:relative;height:430px;display:flex;flex-direction:column;background:linear-gradient(#000000e6,#0a0806ee);border:6px solid transparent;border-image:linear-gradient(135deg,#d8d8e0,#6a6a74 30%,#b8b8c4 60%,#5a5a64) 1;box-shadow:0 0 0 1px #000,inset 0 0 0 1px #000,inset 0 0 0 3px #3a3a42,0 10px 40px #000}
+.plate{position:absolute;left:50%;top:-40px;transform:translateX(-50%);min-width:230px;text-align:center;padding:8px 26px 9px;background:linear-gradient(#2a2a30,#0c0c10);border:3px solid #9a9aa6;border-radius:6px;box-shadow:0 0 0 1px #000,inset 0 0 0 1px #000,0 3px 6px #000;font-size:15px;color:var(--gold);text-shadow:1px 1px 1px #000;white-space:nowrap;z-index:2}
+.body{display:flex;flex:1;min-height:0;margin-top:8px}
+nav{width:118px;border-right:2px solid #5a5a62;padding:8px 6px;background:#00000066;flex:none}
+nav div{padding:5px 8px;font-size:12px;border:1px solid transparent;margin-bottom:2px;color:var(--text)}
+nav div.act{color:var(--gold);border-color:#8a6a1a;background:linear-gradient(#5a1a1a,#2a0808)}
+.pane{flex:1;padding:10px 14px;overflow:auto;font-size:12px;min-width:0}
+.pane h3{margin:0 0 6px;font-size:14px;color:var(--gold);font-weight:normal}
+.chk{display:flex;align-items:center;gap:6px;margin:5px 0;font-size:12px}
+.chk i{width:15px;height:15px;border:2px solid #8a8a94;border-radius:3px;background:linear-gradient(#2a2a30,#0c0c10);box-shadow:0 0 0 1px #000;display:grid;place-items:center;flex:none}
+.chk i::after{content:"";width:4px;height:8px;border:solid var(--gold);border-width:0 3px 3px 0;transform:rotate(40deg) translate(-1px,-1px)}
+.foot{border-top:1px solid #4a4a52;padding:5px 12px;font-size:11px;color:var(--muted);display:flex;justify-content:center;gap:4px}
+.foot a{cursor:pointer;text-decoration:none}
+.foot a:hover{text-decoration:underline}
+.btn{background:linear-gradient(#b02a2a,#6a1010 50%,#3a0606);color:var(--gold);border:1px solid #000;border-radius:4px;box-shadow:inset 0 0 0 1px #d8a0a055,inset 0 1px 0 #ffffff40;padding:4px 12px;font:12px Georgia,serif;text-shadow:1px 1px 0 #000;cursor:pointer}
+.btn:active{filter:brightness(.8)}
+.about{margin-top:12px;border:1px solid #6a5a2a;background:#1a1408cc;border-radius:4px;padding:8px 10px;line-height:1.55}
+.about b{color:var(--gold);font-weight:normal;font-size:13px}
+.eb{display:flex;gap:6px;align-items:center;margin:6px 0 2px}
+.eb input{flex:1;min-width:0;background:#000;color:#fff;border:2px solid #6a6a74;border-radius:3px;padding:4px 7px;font:13px Georgia,serif}
+.eb input:focus{outline:none;border-color:var(--gold)}
+.eb input::selection,textarea::selection{background:#3a6fd1;color:#fff}
+.small{font-size:11px;color:var(--muted)}
+ul.how{margin:6px 0 10px;padding-left:18px;line-height:1.7}
+.dlg{position:fixed;z-index:80;left:50%;top:50%;transform:translate(-50%,-50%);display:none;width:min(440px,calc(100vw - 24px));background:linear-gradient(#000000f2,#0a0806f6);border:6px solid transparent;border-image:linear-gradient(135deg,#d8d8e0,#6a6a74 30%,#b8b8c4 60%,#5a5a64) 1;box-shadow:0 0 0 1px #000,0 10px 40px #000;padding:20px 16px 14px}
+.dlg .plate{top:-36px}
+.dlg.big{width:min(560px,calc(100vw - 24px))}
+.dlg textarea{width:100%;height:210px;background:#000;color:#fff;border:2px solid #6a6a74;border-radius:3px;padding:6px 8px;font:11px ui-monospace,Menlo,monospace;resize:none}
+.dlg textarea:focus{outline:none;border-color:var(--gold)}
+.dlg .x{position:absolute;right:4px;top:4px;width:22px;height:22px;background:linear-gradient(#9a2a2a,#4a0808);color:var(--gold);border:1px solid #000;border-radius:3px;cursor:pointer}
+.dlg .row{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
+.veil{position:fixed;inset:0;background:#0008;z-index:70;display:none}
+.chat{max-width:760px;margin:22px 0 0;background:#000000b0;border:2px solid #6a6a74;border-radius:4px;padding:8px 10px;font:13px Arial,sans-serif}
+.chat h3{margin:0 0 6px;font:14px Georgia,serif;color:var(--gold);font-weight:normal}
+.chat .log{min-height:76px;line-height:1.5}
+.chat .log div{text-shadow:1px 1px 0 #000}
+.chat .sys{color:#ffff00}.chat .cmd{color:#fff}.chat .hl{color:#71d5ff}
+.chat .in{display:flex;gap:6px;margin-top:6px}
+.chat .in input{flex:1;background:#000c;color:#fff;border:1px solid #555;border-radius:3px;padding:3px 7px;font:13px Arial,sans-serif}
+.cap{margin-top:18px;font-size:11px;color:var(--muted);line-height:1.6;max-width:980px}
+.cap code{color:#cfc7aa;font:11px ui-monospace,Menlo,monospace}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:95;background:#000000e0;border:2px solid #7a7a98;border-radius:6px;padding:6px 14px;font-size:12px;color:var(--gold);display:none}
+</style>
+</head>
+<body>
+<h1>Healer Forever contact and support</h1>
+<div class="sub">Three ways to show the support email in the options window, plus the <code style="color:#cfc7aa">/hf contact</code> chat command. <a href="index.html">Back to the main mockup</a></div>
+
+<div class="cards">
+  <div class="opt"><h2>A. About block in General</h2><div class="desc">Credit, version and a copyable email at the bottom of the General tab.</div>
+    <div class="win"><div class="plate">Healer Forever</div><div class="body">
+      <nav><div class="act">General</div><div>Buff Presets</div><div>Class Spells</div><div>Click-Casting</div><div>Frames &amp; Bars</div><div>Buffs &amp; Debuffs</div><div>Range</div></nav>
+      <div class="pane"><h3>General</h3>
+        <div class="chk"><i></i>Show minimap button</div><div class="chk"><i></i>Hide default Blizzard party frames</div><div class="chk"><i></i>Show pets</div>
+        <div class="about"><b>Healer Forever</b>, created by trtg<br><span class="small">Version 0.10.0</span><br>Problems or ideas? Write to:
+          <div class="eb"><input class="mail" value="healer.forever.trtg@gmail.com" aria-label="Support email"><button class="btn copy">Copy</button></div>
+          <span class="small">Click, then Cmd/Ctrl+C</span></div>
+      </div></div>
+      <div class="foot">Healer Forever v0.10.0 · settings v4 · by trtg</div></div></div>
+
+  <div class="opt"><h2>B. Help &amp; Contact tab</h2><div class="desc">Its own tab with the email, a "Report a problem" button and a short checklist.</div>
+    <div class="win"><div class="plate">Healer Forever</div><div class="body">
+      <nav><div>General</div><div>Buff Presets</div><div>Class Spells</div><div>Click-Casting</div><div>Frames &amp; Bars</div><div>Buffs &amp; Debuffs</div><div>Range</div><div class="act">Help &amp; Contact</div></nav>
+      <div class="pane"><h3>Help &amp; Contact</h3>
+        <div>Write to:</div>
+        <div class="eb"><input class="mail" value="healer.forever.trtg@gmail.com" aria-label="Support email"><button class="btn copy">Copy</button></div>
+        <span class="small">Click, then Cmd/Ctrl+C</span>
+        <div style="margin:12px 0 4px"><button class="btn report">Report a problem</button></div>
+        <div class="small">Opens a copy window with your version, class, client info, recent errors and debug output.</div>
+        <h3 style="margin-top:12px">How to report</h3>
+        <ul class="how"><li>What you did right before it happened</li><li>When it happened (in combat, on login, on reload)</li><li>A screenshot if it is visual</li><li>The output of <code style="color:#cfc7aa">/hf errors</code></li></ul>
+      </div></div>
+      <div class="foot">Healer Forever v0.10.0 · settings v4 · by trtg</div></div></div>
+
+  <div class="opt"><h2>C. Footer link</h2><div class="desc">The footer gets "· Contact". Clicking it opens a small dialog.</div>
+    <div class="win"><div class="plate">Healer Forever</div><div class="body">
+      <nav><div class="act">General</div><div>Buff Presets</div><div>Class Spells</div><div>Click-Casting</div><div>Frames &amp; Bars</div><div>Buffs &amp; Debuffs</div><div>Range</div></nav>
+      <div class="pane"><h3>General</h3>
+        <div class="chk"><i></i>Show minimap button</div><div class="chk"><i></i>Hide default Blizzard party frames</div><div class="chk"><i></i>Show pets</div>
+        <div class="small" style="margin-top:14px">Click "Contact" in the footer below.</div>
+      </div></div>
+      <div class="foot"><span>Healer Forever v0.10.0 · settings v4 · by trtg ·</span> <a id="contactLink" role="button" tabindex="0" style="color:var(--gold)">Contact</a></div></div></div>
+</div>
+
+<div class="chat" id="chat">
+  <h3>Chat output of <span style="color:#fff">/hf contact</span></h3>
+  <div class="log" id="log"><div class="small" style="color:#888">Type the command below and press Enter, or click Run.</div></div>
+  <div class="in"><input id="cmd" value="/hf contact" aria-label="Chat input"><button class="btn" id="run">Run</button></div>
+</div>
+
+<div class="cap"><b>Notes:</b> WoW addons cannot open a mail app or a link, and players cannot copy plain FontString text. The email therefore sits in a single-line <code>EditBox</code> that is read-only in effect: an <code>OnTextChanged</code> handler resets it to the address (try typing in the box, it reverts), and <code>OnEditFocusGained</code> / <code>OnMouseUp</code> call <code>HighlightText()</code> so Cmd/Ctrl+C copies it. The Copy button only focuses and selects the box: addons cannot write to the clipboard. The email is never sent anywhere automatically; players copy it themselves. The "Report a problem" window reuses the existing <code>/hf</code> copy window (multi-line <code>EditBox</code> in a <code>ScrollFrame</code>). Client info comes from <code>GetBuildInfo()</code>, <code>UnitClass("player")</code> and <code>GetAddOnMetadata</code>; the sample text below is fake.</div>
+
+<div class="veil" id="veil"></div>
+<div class="dlg" id="dlgContact"><div class="plate">Contact</div><button class="x" data-close>✕</button>
+  <div>Problems or ideas? Write to:</div>
+  <div class="eb"><input class="mail" value="healer.forever.trtg@gmail.com" aria-label="Support email"><button class="btn copy">Copy</button></div>
+  <div class="small">Click, then Cmd/Ctrl+C</div>
+  <div class="row"><button class="btn report">Report a problem</button><button class="btn" data-close>Close</button></div></div>
+<div class="dlg big" id="dlgReport"><div class="plate">Report a problem</div><button class="x" data-close>✕</button>
+  <textarea id="reportText" aria-label="Report text"></textarea>
+  <div class="small" style="margin-top:4px">Click inside, press Cmd/Ctrl+A then Cmd/Ctrl+C. The text is read-only.</div>
+  <div class="row"><button class="btn" id="selAll">Select all</button><button class="btn" data-close>Close</button></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const EMAIL='healer.forever.trtg@gmail.com';
+const REPORT=`Paste this into your email to ${EMAIL}
+
+Healer Forever v0.10.0 (settings v4)
+Class: Paladin (Holy), level 60
+Client: WoW Forever 12.0.1 (build 61234), macOS, locale enUS
+Group: party of 5, not in combat
+
+Last errors (2):
+ 1x HealerForever/Frames/Unit.lua:212: attempt to index field 'auras' (a nil value)
+ 1x HealerForever/Minimap/MinimapPins.lua:88: bad argument #1 to 'SetVertexColor'
+
+Debug:
+ preset=5-man Dungeon  range=ok  pins=orbs  buttonStyle=B
+ secure buttons: 5 ok, 0 pending`;
+const toast=document.getElementById('toast');
+function say(m){toast.textContent=m;toast.style.display='block';clearTimeout(say.t);say.t=setTimeout(()=>toast.style.display='none',2200)}
+function wireMail(i){
+  i.addEventListener('focus',()=>i.select());
+  i.addEventListener('mouseup',e=>{e.preventDefault();i.select()});
+  i.addEventListener('input',()=>{i.value=EMAIL;i.select()});
+}
+function wire(root){
+  root.querySelectorAll('.mail').forEach(wireMail);
+  root.querySelectorAll('.copy').forEach(b=>b.onclick=()=>{const i=b.parentElement.querySelector('.mail');i.focus();i.select();say('Selected. Now press Cmd/Ctrl+C')});
+  root.querySelectorAll('.report').forEach(b=>b.onclick=openReport);
+}
+wire(document);
+const veil=document.getElementById('veil'),dc=document.getElementById('dlgContact'),dr=document.getElementById('dlgReport'),ta=document.getElementById('reportText');
+function closeAll(){[dc,dr,veil].forEach(e=>e.style.display='none')}
+function openContact(){closeAll();veil.style.display='block';dc.style.display='block';const i=dc.querySelector('.mail');i.focus();i.select()}
+function openReport(){closeAll();veil.style.display='block';dr.style.display='block';ta.value=REPORT;ta.focus();ta.select()}
+ta.addEventListener('input',()=>{ta.value=REPORT;ta.select()});
+document.getElementById('selAll').onclick=()=>{ta.focus();ta.select();say('Selected. Now press Cmd/Ctrl+C')};
+document.querySelectorAll('[data-close]').forEach(b=>b.onclick=closeAll);
+veil.onclick=closeAll;document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAll()});
+const link=document.getElementById('contactLink');link.onclick=openContact;link.onkeydown=e=>{if(e.key==='Enter')openContact()};
+/* chat */
+const log=document.getElementById('log'),cmd=document.getElementById('cmd');
+function runCmd(){
+  const v=cmd.value.trim();const l=document.createElement('div');
+  if(!log.dataset.used){log.innerHTML='';log.dataset.used=1}
+  l.className='cmd';l.textContent='> '+v;log.appendChild(l);
+  if(v==='/hf contact'){
+    [`<span class="hl">Healer Forever</span> v0.10.0 by trtg`,`Problems or ideas? Write to: <span class="hl">${EMAIL}</span>`,`The address is selected in the box that just opened. Press Cmd/Ctrl+C to copy it.`].forEach(t=>{const d=document.createElement('div');d.className='sys';d.innerHTML=t;log.appendChild(d)});
+    openContact();
+  }else{const d=document.createElement('div');d.className='sys';d.textContent='Unknown command. Try /hf contact';log.appendChild(d)}
+}
+document.getElementById('run').onclick=runCmd;cmd.addEventListener('keydown',e=>{if(e.key==='Enter')runCmd()});
+</script>
+</body>
+</html>

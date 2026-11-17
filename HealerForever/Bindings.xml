@@ -1,0 +1,6 @@
+<Bindings>
+	<Binding name="CLICK HealerForeverSmartBuff:LeftButton" header="HEALERFOREVER" category="ADDONS">
+	</Binding>
+	<Binding name="CLICK HealerForeverTankBuff:LeftButton" category="ADDONS">
+	</Binding>
+</Bindings>

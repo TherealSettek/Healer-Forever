@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Healer Forever Buff Groups</title>
+<style>
+:root{--gold:#ffd100;--gold-dim:#c9a227;--muted:#9a927e;--text:#e8e2d0;--ok:#4cff6a}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font-family:"Friz Quadrata TT",Georgia,"Times New Roman",serif;color:var(--text);background:radial-gradient(ellipse at 30% 70%,#3b4a2a 0%,#1f2a18 35%,#0d120b 70%),#0d120b;padding:48px 16px 24px}
+a{color:var(--gold)}
+.top{max-width:980px;margin:-30px auto 14px}
+.top h1{margin:0 0 4px;font-size:20px;color:var(--gold);font-weight:normal;text-shadow:1px 1px 1px #000}
+.top .sub{font-size:12px;color:#ffffffa0}
+/* window */
+.win{position:relative;max-width:980px;margin:34px auto 20px;background:linear-gradient(#000000e6,#0a0806ee);border:6px solid transparent;border-image:linear-gradient(135deg,#d8d8e0,#6a6a74 30%,#b8b8c4 60%,#5a5a64) 1;box-shadow:0 0 0 1px #000,inset 0 0 0 1px #000,inset 0 0 0 3px #3a3a42,0 10px 40px #000;padding:26px 20px 16px}
+.plate{position:absolute;left:50%;top:-40px;transform:translateX(-50%);min-width:300px;text-align:center;padding:9px 30px 11px;background:linear-gradient(#2a2a30,#0c0c10);border:3px solid #9a9aa6;border-radius:6px;box-shadow:0 0 0 1px #000,inset 0 0 0 1px #000,0 3px 6px #000;font-size:16px;color:var(--gold);text-shadow:1px 1px 1px #000;white-space:nowrap}
+h2{margin:0 0 4px;font-size:15px;color:var(--gold);font-weight:normal}
+h2.sec{margin-top:18px}
+.hint{font-size:12px;color:var(--muted);margin:0 0 10px}
+.row{display:flex;align-items:center;gap:10px;margin:8px 0;font-size:13px;flex-wrap:wrap}
+select{background:#000;color:var(--text);border:2px solid #6a6a74;border-radius:3px;padding:3px 6px;font:13px Georgia,serif}
+.btn{background:linear-gradient(#b02a2a,#6a1010 50%,#3a0606);color:var(--gold);border:1px solid #000;border-radius:4px;box-shadow:inset 0 0 0 1px #d8a0a055,inset 0 1px 0 #ffffff40;padding:5px 14px;font:12px Georgia,serif;text-shadow:1px 1px 0 #000;cursor:pointer}
+.btn:active{filter:brightness(.8)}
+.chk{display:inline-flex;align-items:center;gap:5px;font-size:12px;cursor:pointer}
+.chk input{appearance:none;-webkit-appearance:none;width:16px;height:16px;margin:0;background:linear-gradient(#2a2a30,#0c0c10);border:2px solid #8a8a94;border-radius:3px;box-shadow:0 0 0 1px #000;display:grid;place-items:center;cursor:pointer}
+.chk input:checked::after{content:"";width:4px;height:8px;border:solid var(--gold);border-width:0 3px 3px 0;transform:rotate(40deg) translate(-1px,-1px)}
+table.grid{border-collapse:collapse;font-size:12px;width:100%}
+table.grid th,table.grid td{border:1px solid #2e2618;padding:4px 6px;text-align:center}
+table.grid th{color:var(--gold-dim);font-weight:normal;background:#1a160f}
+table.grid td.cls{text-align:left;font-weight:bold;white-space:nowrap}
+td.cell{cursor:pointer;min-width:120px;height:32px}
+td.cell:hover{background:#ffd10018;outline:1px solid var(--gold-dim)}
+td.cell.open{background:#ffd10028;outline:1px solid var(--gold)}
+td.na{color:#4a4a4a;background:#0a0a0a;cursor:default}
+td.cell .none{color:#6a6a6a}
+.bi{display:inline-grid;place-items:center;width:20px;height:20px;margin:0 1px;border:1px solid #000;border-radius:3px;font-size:9px;font-weight:bold;color:#fff;text-shadow:0 0 2px #000,1px 1px 0 #000;vertical-align:middle;background-image:linear-gradient(rgba(255,255,255,.3),rgba(0,0,0,.25))}
+.bi.lg{width:26px;height:26px;font-size:11px}
+.note{border:1px solid #6a5a2a;background:#1a1408cc;border-radius:4px;padding:8px 10px;font-size:12px;color:#e8d9a8;margin:10px 0;line-height:1.5}
+.rb{display:flex;align-items:center;gap:10px;padding:5px 8px;margin:4px 0;background:#00000066;border:1px solid #3a3a42;border-radius:3px;flex-wrap:wrap}
+.rb .nm{min-width:120px}
+.x{background:linear-gradient(#9a2a2a,#4a0808);color:var(--gold);border:1px solid #000;border-radius:3px;width:22px;height:22px;cursor:pointer;margin-left:auto}
+/* party strip */
+.strip{max-width:980px;margin:0 auto 14px;background:#000000c0;border:2px solid #8a8a94;border-radius:4px;padding:12px 14px}
+.strip h2{margin-bottom:8px}
+.party{display:flex;gap:26px;flex-wrap:wrap;margin:18px 0 10px}
+.mem{width:150px;position:relative}
+.bar{position:relative;height:34px;background:#2a0d0d;border:2px solid #8a8aa0;border-radius:4px;box-shadow:0 0 0 1px #000;overflow:hidden}
+.bar .f{position:absolute;inset:0 30% 0 0;background:var(--cc);background-image:linear-gradient(rgba(255,255,255,.38),rgba(255,255,255,.04) 48%,rgba(0,0,0,.28))}
+.bar .n{position:absolute;left:5px;top:50%;transform:translateY(-50%);font-size:12px;color:#fff;text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;z-index:1}
+.bar .r{position:absolute;right:5px;top:50%;transform:translateY(-50%);font-size:11px;color:#fff;text-shadow:1px 1px 1px #000;z-index:1}
+.mem.next .bar{outline:2px solid var(--gold);outline-offset:1px;filter:drop-shadow(0 0 5px var(--gold))}
+.have{display:flex;gap:2px;margin-top:3px;min-height:22px;flex-wrap:wrap}
+.nb{position:absolute;right:-12px;top:-17px;width:30px;height:30px;border-radius:5px;border:2px solid var(--gold);cursor:pointer;display:grid;place-items:center;font-size:11px;font-weight:bold;color:#fff;animation:pulse 1.2s infinite;z-index:3;background-image:linear-gradient(rgba(255,255,255,.3),rgba(0,0,0,.25));text-shadow:0 0 2px #000,1px 1px 0 #000}
+.nb .cnt{position:absolute;right:-8px;bottom:-8px;min-width:16px;height:16px;border-radius:8px;background:#b02a2a;border:1px solid #fff;font-size:10px;line-height:14px;text-align:center;color:#fff}
+@keyframes pulse{0%,100%{box-shadow:0 0 2px var(--gold)}50%{box-shadow:0 0 10px var(--gold)}}
+.smart{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.kbd{display:inline-block;border:1px solid #6a5a3a;border-bottom-width:2px;border-radius:3px;padding:0 6px;font-size:11px;background:#221c12}
+.cap{max-width:980px;margin:0 auto 8px;font-size:11px;color:var(--muted);line-height:1.6}
+.cap code{color:#cfc7aa;font:11px ui-monospace,Menlo,monospace}
+/* menus */
+.pop{position:fixed;z-index:70;display:none;min-width:230px;background:linear-gradient(#0c0c1ef6,#05050ffa);border:2px solid #7a7a98;border-radius:6px;box-shadow:0 0 0 1px #000,0 6px 16px #000a;padding:5px;font-size:13px}
+.pop .ttl{color:var(--gold);padding:2px 8px 4px;font-size:13px}
+.pop .gh{color:var(--gold-dim);font-size:11px;padding:6px 8px 2px;border-top:1px solid #3a3a4a;margin-top:3px;text-transform:uppercase;letter-spacing:.5px}
+.pop .it{display:flex;align-items:center;gap:7px;padding:3px 8px;border-radius:2px;color:#fff;cursor:pointer;white-space:nowrap}
+.pop .it:hover{background:#ffffff26}
+.pop .it.dis{color:#6a6a6a;cursor:not-allowed}
+.pop .it.dis:hover{background:none}
+.pop .mk{width:14px;text-align:center;color:var(--gold)}
+.tt{position:fixed;z-index:90;display:none;pointer-events:none;background:linear-gradient(#0c0c1ef2,#05050ff5);border:2px solid #7a7a98;border-radius:6px;box-shadow:0 0 0 1px #000;padding:5px 9px;font-size:12px;line-height:1.5;white-space:nowrap}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:95;background:#000000e0;border:2px solid #7a7a98;border-radius:6px;padding:6px 14px;font-size:12px;color:var(--gold);display:none}
+</style>
+</head>
+<body>
+<div class="top"><h1>Healer Forever buff groups</h1><div class="sub">Class-aware buff catalog: buffs in the same group exclude each other, different groups stack. Click a grid cell to edit it. <a href="index.html">Back to the main mockup</a></div></div>
+
+<div class="win">
+  <div class="plate">Healer Forever</div>
+  <h2>Buff Presets</h2>
+  <p class="hint">Choose which of your buffs each class and role should get. One buff per group; different groups stack.</p>
+  <div class="row"><label>You are playing:</label><select id="cls"><option>Paladin</option><option>Priest</option><option>Mage</option><option>Druid</option><option>Warrior</option></select>
+    <button class="btn" id="loadEx">Load example</button></div>
+  <div id="gridWrap"></div>
+  <h2 class="sec">Role buffs</h2>
+  <p class="hint">Extra targeted buffs, for example a tank-only oath. They appear as an additional entry in the missing-buff queue.</p>
+  <div id="rbList"></div>
+  <div class="row"><select id="rbSel"></select><button class="btn" id="rbAdd">+ Add role buff</button></div>
+</div>
+
+<div class="strip">
+  <h2>Party bars preview</h2>
+  <div class="hint">The button shows the next buff it will cast, with a count when several are missing. Left-click casts one buff. Right-click casts the group version (Greater / Prayer / Brilliance / Gift) on that class.</div>
+  <div class="party" id="party"></div>
+  <div class="smart"><button class="btn" id="smartBtn">Smart buff</button><span>Keybind demo: press <span class="kbd">X</span>. One press = one cast, walking tank, other healers, DPS, then you.</span><span id="nextHint" style="color:var(--gold);font-size:12px"></span><button class="btn" id="resetP">Reset party buffs</button></div>
+</div>
+
+<div class="cap"><b>Notes:</b> Spell names are from vanilla memory and must be checked against the WoW Forever spellbook. The addon will only show spells the character actually knows (greyed here: Sanctuary and Divine Spirit simulate "not in your spellbook"). A WoW addon cannot cast several spells from one click or key press: one cast per click is a restriction of the secure action system, so the button advances to the next buff after each cast. The group version buttons use <code>SecureActionButton</code> attributes <code>spell1</code> (left) and <code>spell2</code> (right) re-assigned out of combat after each aura change. Icons here are emulated; the addon would use the spell textures via <code>C_Spell.GetSpellTexture</code>.</div>
+
+<div class="pop" id="pop"></div>
+<div class="tt" id="tt"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const B={
+ might:{n:'Blessing of Might',a:'Mi',c:'#b5442a',g:'Greater Blessing of Might'},
+ wisdom:{n:'Blessing of Wisdom',a:'Wi',c:'#3b6fd1',g:'Greater Blessing of Wisdom'},
+ kings:{n:'Blessing of Kings',a:'Ki',c:'#a07de0',g:'Greater Blessing of Kings'},
+ salv:{n:'Blessing of Salvation',a:'Sa',c:'#d9c46a',g:'Greater Blessing of Salvation'},
+ light:{n:'Blessing of Light',a:'Li',c:'#e8d85a',g:'Greater Blessing of Light'},
+ sanc:{n:'Blessing of Sanctuary',a:'Sn',c:'#8a8a8a',g:'Greater Blessing of Sanctuary',unknown:true},
+ fort:{n:'Power Word: Fortitude',a:'Fo',c:'#d8d098',g:'Prayer of Fortitude'},
+ spirit:{n:'Divine Spirit',a:'Sp',c:'#7ab8f0',g:'Prayer of Spirit',unknown:true},
+ shprot:{n:'Shadow Protection',a:'Sh',c:'#6a4aa0',g:'Prayer of Shadow Protection'},
+ ai:{n:'Arcane Intellect',a:'AI',c:'#5aa0f0',g:'Arcane Brilliance'},
+ damp:{n:'Dampen Magic',a:'Da',c:'#8a8ad8'},
+ amp:{n:'Amplify Magic',a:'Am',c:'#d88ad8'},
+ motw:{n:'Mark of the Wild',a:'MW',c:'#5ab04a',g:'Gift of the Wild'},
+ thorns:{n:'Thorns',a:'Th',c:'#8a6a2a'},
+ oath:{n:'Oath of Light',a:'OL',c:'#ffe9a0'},
+ pi:{n:'Power Infusion',a:'PI',c:'#f0e060'},
+ inn:{n:'Innervate',a:'In',c:'#60d0a0'}
+};
+const CAT={
+ Paladin:[{id:'bless',name:'Blessing',multi:true,buffs:['might','wisdom','kings','salv','light','sanc']}],
+ Priest:[{id:'fort',name:'Fortitude',buffs:['fort']},{id:'spirit',name:'Divine Spirit',buffs:['spirit']},{id:'shadow',name:'Shadow Protection',buffs:['shprot']}],
+ Mage:[{id:'int',name:'Intellect',buffs:['ai']},{id:'magic',name:'Magic',multi:true,buffs:['damp','amp']}],
+ Druid:[{id:'motw',name:'Mark of the Wild',buffs:['motw']},{id:'thorns',name:'Thorns',buffs:['thorns']}],
+ Warrior:[]
+};
+const CC={Warrior:'#C69B6D',Paladin:'#F48CBA',Hunter:'#AAD372',Rogue:'#FFF468',Priest:'#FFFFFF',Shaman:'#0070DD',Mage:'#3FC7EB',Warlock:'#8788EE',Druid:'#FF7C0A'};
+const VALID={Warrior:['T','D'],Paladin:['T','H','D'],Hunter:['D'],Rogue:['D'],Priest:['H','D'],Shaman:['H','D'],Mage:['D'],Warlock:['D'],Druid:['T','H','D']};
+const RN={T:'🛡 Tank',H:'✚ Healer',D:'⚔ DPS'};
+const MELEE=['Warrior','Rogue','Hunter'];
+const EXTRA=['oath','pi','inn'];
+let me='Paladin';
+const CFG={},RB={};
+function example(cls){
+  const c={};const set=(cell,g,b)=>{(c[cell]=c[cell]||{})[g]=b};
+  Object.keys(VALID).forEach(t=>VALID[t].forEach(r=>{const cell=t+':'+r,melee=MELEE.includes(t)||(r==='T');
+    if(cls==='Paladin'){set(cell,'bless',t==='Warrior'&&r==='T'?'kings':melee?'might':'wisdom')}
+    if(cls==='Priest'){set(cell,'fort','fort');if(!melee&&r!=='T')set(cell,'spirit','spirit');if(r==='T')set(cell,'shadow','shprot')}
+    if(cls==='Mage'){set(cell,'int','ai');if(r==='H')set(cell,'magic','amp');if(r==='T')set(cell,'magic','damp')}
+    if(cls==='Druid'){set(cell,'motw','motw');if(r==='T')set(cell,'thorns','thorns')}
+  }));
+  if(cls==='Paladin')c.self={bless:'wisdom'};
+  CFG[cls]=c;
+  RB[cls]=cls==='Paladin'?[{k:'oath',roles:{T:true},single:true}]:[];
+}
+Object.keys(CAT).forEach(example);
+const cell=(t,r)=>t+':'+r;
+function iconsFor(cfg){
+  const out=[];(CAT[me]||[]).forEach(g=>{const b=cfg&&cfg[g.id];if(b)out.push(b)});return out;
+}
+const bi=(k,cl='')=>`<span class="bi ${cl}" style="background-color:${B[k].c}" data-tip="${B[k].n}">${B[k].a}</span>`;
+/* grid */
+function drawGrid(){
+  const w=document.getElementById('gridWrap');
+  if(!CAT[me].length){w.innerHTML='<div class="note">Your class has no party buffs to assign. Use Role buffs below for anything special.</div>';return}
+  const rows=Object.keys(VALID).map(t=>`<tr><td class="cls" style="color:${CC[t]}">${t}</td>${['T','H','D'].map(r=>VALID[t].includes(r)?`<td class="cell" data-cell="${cell(t,r)}">${cellHTML(CFG[me][cell(t,r)])}</td>`:'<td class="na">n/a</td>').join('')}</tr>`).join('');
+  w.innerHTML=`<table class="grid"><tr><th>Target class</th><th>🛡 Tank</th><th>✚ Healer</th><th>⚔ DPS</th></tr><tr><td class="cls" style="color:var(--gold)">Self (you)</td><td class="cell" data-cell="self" colspan="3">${CFG[me].self&&iconsFor(CFG[me].self).length?cellHTML(CFG[me].self):'<span class="none">use class/role rule</span>'}</td></tr>${rows}</table>`;
+}
+const cellHTML=c=>{const i=iconsFor(c);return i.length?i.map(k=>bi(k)).join(''):'<span class="none">—</span>'};
+/* popup */
+const pop=document.getElementById('pop');let popCell=null;
+function openPop(key,x,y){
+  popCell=key;const cfg=(CFG[me][key]=CFG[me][key]||{});
+  const title=key==='self'?'Self (you)':key.split(':')[0]+' ('+RN[key.split(':')[1]].slice(2)+')';
+  pop.innerHTML=`<div class="ttl">${title}</div>`+CAT[me].map(g=>`<div class="gh">${g.name}${g.multi?' (choose one)':''}</div>`+
+   (g.multi?`<div class="it" data-g="${g.id}" data-b=""><span class="mk">${!cfg[g.id]?'●':'○'}</span><span style="color:#aaa">None</span></div>`:'')+
+   g.buffs.map(k=>{const b=B[k],on=cfg[g.id]===k;return `<div class="it ${b.unknown?'dis':''}" data-g="${g.id}" data-b="${k}" ${b.unknown?'data-tip="Not in your spellbook|You haven\'t learned this spell yet. It is hidden in game and cannot be assigned."':''}><span class="mk">${g.multi?(on?'●':'○'):(on?'✓':'')}</span>${bi(k)}<span>${b.n}</span></div>`}).join('')).join('');
+  pop.style.display='block';
+  const w=pop.offsetWidth,h=pop.offsetHeight;pop.style.left=Math.min(x,innerWidth-w-10)+'px';pop.style.top=Math.min(y,innerHeight-h-10)+'px';
+  document.querySelectorAll('td.cell').forEach(c=>c.classList.toggle('open',c.dataset.cell===key));
+}
+function closePop(){pop.style.display='none';popCell=null;document.querySelectorAll('td.cell.open').forEach(c=>c.classList.remove('open'))}
+pop.addEventListener('click',e=>{
+  const it=e.target.closest('.it');if(!it||it.classList.contains('dis'))return;
+  const g=CAT[me].find(x=>x.id===it.dataset.g),cfg=CFG[me][popCell],b=it.dataset.b;
+  if(g.multi){if(b)cfg[g.id]=b;else delete cfg[g.id]}else{if(cfg[g.id])delete cfg[g.id];else cfg[g.id]=b}
+  const r=pop.getBoundingClientRect();openPop(popCell,r.left,r.top);drawGrid();document.querySelectorAll('td.cell').forEach(c=>c.classList.toggle('open',c.dataset.cell===popCell));drawParty();
+});
+document.getElementById('gridWrap').addEventListener('click',e=>{const c=e.target.closest('td.cell');if(!c)return;const r=c.getBoundingClientRect();openPop(c.dataset.cell,r.left,r.bottom+2);e.stopPropagation()});
+document.addEventListener('mousedown',e=>{if(!(e.target instanceof Element&&(e.target.closest('.pop')||e.target.closest('td.cell'))))closePop()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closePop()});
+/* role buffs */
+function drawRB(){
+  const L=RB[me];
+  document.getElementById('rbList').innerHTML=L.length?L.map((r,i)=>`<div class="rb" data-i="${i}">${bi(r.k,'lg')}<span class="nm">${B[r.k].n}</span>${['T','H','D','S'].map(x=>`<label class="chk"><input type="checkbox" data-r="${x}" ${r.roles[x]?'checked':''}>${x==='S'?'Self':RN[x]}</label>`).join('')}<label class="chk" style="margin-left:auto"><input type="checkbox" data-single ${r.single?'checked':''}>One target at a time</label><button class="x" data-del="${i}">✕</button></div>`).join(''):'<p class="hint">No role buffs for this class.</p>';
+}
+document.getElementById('rbSel').innerHTML=EXTRA.map(k=>`<option value="${k}">${B[k].n}</option>`).join('');
+document.getElementById('rbAdd').onclick=()=>{RB[me].push({k:document.getElementById('rbSel').value,roles:{T:true},single:false});drawRB();drawParty()};
+document.getElementById('rbList').addEventListener('change',e=>{const row=e.target.closest('.rb');if(!row)return;const r=RB[me][+row.dataset.i];if(e.target.dataset.r)r.roles[e.target.dataset.r]=e.target.checked;else r.single=e.target.checked;drawParty()});
+document.getElementById('rbList').addEventListener('click',e=>{const d=e.target.closest('[data-del]');if(!d)return;RB[me].splice(+d.dataset.del,1);drawRB();drawParty()});
+/* party */
+const MEM=[
+ {id:'t',n:'Garrosh',cls:'Warrior',role:'T',hp:62},
+ {id:'h',n:'Thrall (you)',cls:'me',role:'H',hp:93,you:true},
+ {id:'d1',n:'Jaina',cls:'Mage',role:'D',hp:24},
+ {id:'d2',n:'Rexxar',cls:'Hunter',role:'D',hp:71},
+ {id:'d3',n:"Gul'dan",cls:'Warlock',role:'D',hp:55},
+];
+const has={};
+function resetHas(){MEM.forEach(m=>has[m.id]=new Set())}resetHas();
+const mcls=m=>m.cls==='me'?me:m.cls;
+function needs(m){
+  const cfgSrc=m.you&&CFG[me].self&&iconsFor(CFG[me].self).length?CFG[me].self:CFG[me][cell(mcls(m),m.role)];
+  const list=iconsFor(cfgSrc);
+  (RB[me]||[]).forEach(r=>{if((r.roles[m.role]&&!m.you)||(m.you&&(r.roles.S||r.roles[m.role]))){
+     if(r.single&&MEM.some(o=>o!==m&&has[o.id].has(r.k)))return;list.push(r.k)}});
+  return list.filter(k=>!has[m.id].has(k)&&!B[k].unknown);
+}
+const ORDER=()=>[MEM[0],...MEM.filter(m=>m.role==='H'&&!m.you),...MEM.filter(m=>m.role==='D'),MEM.find(m=>m.you)];
+function nextTarget(){return ORDER().find(m=>needs(m).length)}
+function drawParty(){
+  const nt=nextTarget();
+  document.getElementById('party').innerHTML=MEM.map(m=>{
+    const need=needs(m),c=CC[mcls(m)];
+    return `<div class="mem ${nt===m?'next':''}" data-m="${m.id}" style="--cc:${c}"><div class="bar"><div class="f"></div><div class="n">${m.role==='T'?'🛡 ':m.role==='H'?'✚ ':''}${m.n}</div><div class="r">${m.hp}%</div></div>
+     ${need.length?`<div class="nb" data-nb="${m.id}" style="background-color:${B[need[0]].c}" data-tip="Missing: ${B[need[0]].n}${need.length>1?` (+${need.length-1} more)`:''}|<span style='color:#4cff6a'>Left-click:</span> <span style='color:#9a9a9a'>${B[need[0]].n}</span><br><span style='color:#4cff6a'>Right-click:</span> <span style='color:#9a9a9a'>${B[need[0]].g||B[need[0]].n}${B[need[0]].g?' (class)':''}</span>">${B[need[0]].a}${need.length>1?`<span class="cnt">${need.length}</span>`:''}</div>`:''}
+     <div class="have">${[...has[m.id]].map(k=>bi(k)).join('')}</div></div>`}).join('');
+  document.getElementById('nextHint').textContent=nt?`Next: ${nt.n.replace(' (you)','')} gets ${B[needs(nt)[0]].n}`:'Everyone is buffed';
+}
+const toast=document.getElementById('toast');
+function say(m){toast.textContent=m;toast.style.display='block';clearTimeout(say.t);say.t=setTimeout(()=>toast.style.display='none',2200)}
+function cast(m,group){
+  const k=needs(m)[0];if(!k)return;
+  if(group&&B[k].g){MEM.filter(o=>mcls(o)===mcls(m)).forEach(o=>has[o.id].add(k));say(`${B[k].g} on all ${mcls(m)}s`)}
+  else{has[m.id].add(k);say(`${B[k].n} on ${m.n.replace(' (you)','')}`)}
+  drawParty();
+}
+function smart(){const t=nextTarget();if(!t){say('Smart buff: everyone is buffed');return}cast(t,false)}
+document.getElementById('party').addEventListener('click',e=>{const b=e.target.closest('[data-nb]');if(b)cast(MEM.find(m=>m.id===b.dataset.nb),false)});
+document.getElementById('party').addEventListener('contextmenu',e=>{const b=e.target.closest('[data-nb]');if(!b)return;e.preventDefault();cast(MEM.find(m=>m.id===b.dataset.nb),true)});
+document.getElementById('smartBtn').onclick=smart;
+document.addEventListener('keydown',e=>{if((e.key==='x'||e.key==='X')&&!e.metaKey&&!e.ctrlKey&&!(e.target instanceof Element&&e.target.closest('select,input')))smart()});
+document.getElementById('resetP').onclick=()=>{resetHas();drawParty()};
+/* class switch */
+function setClass(c){me=c;closePop();drawGrid();drawRB();resetHas();drawParty()}
+document.getElementById('cls').onchange=e=>setClass(e.target.value);
+document.getElementById('loadEx').textContent='Load example: Paladin';
+document.getElementById('cls').addEventListener('change',e=>document.getElementById('loadEx').textContent='Load example: '+e.target.value);
+document.getElementById('loadEx').onclick=()=>{example(me);drawGrid();drawRB();resetHas();drawParty();say('Loaded the example preset for '+me)};
+/* tooltip */
+const tt=document.getElementById('tt');
+document.addEventListener('mousemove',e=>{
+  const el=e.target instanceof Element?e.target:null,t=el&&el.closest('[data-tip]');
+  if(!t){tt.style.display='none';return}
+  const [a,b]=t.dataset.tip.split('|');tt.innerHTML=`<div style="color:#fff">${a}</div>${b?`<div style="color:#9a927e">${b}</div>`:''}`;
+  tt.style.display='block';tt.style.left=Math.min(e.clientX+14,innerWidth-340)+'px';tt.style.top=(e.clientY+14)+'px';
+});
+drawGrid();drawRB();drawParty();
+</script>
+</body>
+</html>

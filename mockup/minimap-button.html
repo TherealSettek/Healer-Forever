@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Healer Forever Minimap Button</title>
+<style>
+:root{--gold:#ffd100;--muted:#9a927e}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font-family:"Friz Quadrata TT",Georgia,"Times New Roman",serif;color:#e8e2d0;background:radial-gradient(ellipse at 30% 70%,#3b4a2a 0%,#1f2a18 35%,#0d120b 70%),#0d120b;padding:16px}
+a{color:var(--gold)}
+h1{margin:0 0 4px;font-size:20px;color:var(--gold);font-weight:normal;text-shadow:1px 1px 1px #000}
+.sub{font-size:12px;color:#ffffffa0;margin-bottom:12px}
+.panel{background:#000000c8;border:2px solid #8a8a94;border-radius:4px;padding:10px 12px;margin:10px 0}
+.panel h3{margin:0 0 6px;font-size:14px;color:var(--gold);font-weight:normal}
+.path{font-size:11px;color:var(--muted);margin-bottom:8px}
+.pg{display:grid;gap:8px 18px;grid-template-columns:repeat(auto-fit,minmax(270px,1fr))}
+.pg .r{display:flex;align-items:center;gap:8px;justify-content:space-between;font-size:12px}
+.pg input[type=range]{accent-color:#d8a83a;width:110px}
+select{background:#000;color:#e8e2d0;border:2px solid #6a6a74;border-radius:3px;padding:2px 5px;font:12px Georgia,serif}
+input[type=checkbox]{accent-color:#d8a83a;width:15px;height:15px}
+.cards{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));align-items:start}
+.card{background:#000000a0;border:2px solid #6a6a74;border-radius:4px;padding:12px}
+.card.sel{border-color:var(--gold);box-shadow:0 0 8px #ffd10066}
+.card h2{margin:0 0 2px;font-size:16px;color:var(--gold);font-weight:normal}
+.card .desc{font-size:12px;color:var(--muted);margin-bottom:6px;min-height:34px}
+.stage{display:grid;place-items:center;padding:34px 0 22px;user-select:none}
+.cap{margin-top:8px;font-size:11px;color:var(--muted);line-height:1.5;border-top:1px solid #3a3a42;padding-top:6px}
+.cap code{color:#cfc7aa;font:11px ui-monospace,Menlo,monospace}
+.hint{font-size:11px;color:var(--muted);text-align:center;margin-top:-10px}
+
+.mm{position:relative;width:200px;height:200px}
+.zone{position:absolute;left:50%;top:-30px;transform:translateX(-50%);padding:1px 12px;font-size:11px;color:var(--gold);text-shadow:1px 1px 1px #000;background:#000000b0;border:1px solid #6a5a2a;border-radius:3px;white-space:nowrap}
+.terrain{position:absolute;inset:0;border-radius:50%;overflow:hidden;
+ background:radial-gradient(ellipse 60px 34px at 150px 150px,#1d3a4a,#16303d 60%,transparent 62%),linear-gradient(115deg,transparent 46%,#6a5836aa 47% 50%,transparent 51%),linear-gradient(20deg,transparent 58%,#5a4a2caa 59% 61%,transparent 62%),radial-gradient(circle at 30% 30%,#3d5228 0 30px,transparent 31px),repeating-radial-gradient(circle at 50% 50%,#ffffff05 0 3px,#00000008 3px 6px),radial-gradient(circle at 40% 40%,#3a4c28,#26361a 55%,#141d0e);box-shadow:inset 0 0 18px #000c}
+.ringb{position:absolute;inset:-11px;border-radius:50%;pointer-events:none;z-index:2;background:conic-gradient(from 20deg,#ffe58a,#a8801c,#fff0a8,#7a5a14,#ffe58a);-webkit-mask:radial-gradient(circle,transparent 0 99px,#000 100px 109px,transparent 110px);mask:radial-gradient(circle,transparent 0 99px,#000 100px 109px,transparent 110px);filter:drop-shadow(0 0 1px #000)}
+.me{position:absolute;left:50%;top:50%;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:15px solid #fff;transform:translate(-50%,-55%);filter:drop-shadow(0 0 2px #000);z-index:1}
+
+/* the button */
+.lb{position:absolute;width:38px;height:38px;margin:-19px 0 0 -19px;z-index:5;cursor:pointer;touch-action:none}
+.lb.nomove{cursor:default}
+.lb .face{position:absolute;inset:3px;border-radius:50%;overflow:hidden;background:#000;box-shadow:inset 0 0 0 1px #000}
+.lb .face svg{width:100%;height:100%;display:block;transition:transform .05s}
+.lb .bd{position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 30deg,#ffe58a,#a8801c,#fff0a8,#7a5a14,#ffe58a);-webkit-mask:radial-gradient(circle,transparent 0 15px,#000 16px);mask:radial-gradient(circle,transparent 0 15px,#000 16px);box-shadow:0 0 0 1px #000;pointer-events:none}
+.lb .bd2{position:absolute;inset:0;border-radius:50%;box-shadow:0 0 0 1px #000,0 2px 4px #000a;pointer-events:none}
+.lb .hl{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle,#fff8c0aa,#ffd10055 55%,transparent 70%);mix-blend-mode:screen;opacity:0;transition:opacity .12s;pointer-events:none}
+.lb:hover .hl{opacity:1}
+.lb:hover{filter:drop-shadow(0 0 6px #ffd100)}
+.lb.down .face svg{transform:translate(1px,1px) scale(.96)}
+.lb.down .face{box-shadow:inset 0 0 8px #000}
+.lb.down .hl{opacity:.4}
+.lb.drag{filter:drop-shadow(0 0 8px #ffd100);cursor:grabbing}
+.lb.gone{display:none}
+.lb .sr{position:absolute;inset:-4px;border-radius:50%;border:2px solid var(--src,#4cff6a);box-shadow:0 0 6px var(--src,#4cff6a);pointer-events:none;display:none}
+.lb .dotb,.lb .lockb,.lb .initb{position:absolute;display:none;pointer-events:none}
+.lb .dotb{right:-3px;top:-3px;width:12px;height:12px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,var(--src,#4cff6a) 40%,#000);border:1px solid #000;box-shadow:0 0 4px var(--src,#4cff6a)}
+.lb .lockb{right:-5px;bottom:-5px;width:15px;height:15px;border-radius:50%;background:#1a1a22;border:1px solid #8a8a94;font-size:9px;line-height:13px;text-align:center}
+.lb .initb{left:-5px;bottom:-5px;min-width:15px;height:15px;border-radius:8px;background:#1a1408;border:1px solid var(--gold);font-size:10px;line-height:13px;text-align:center;color:var(--gold);padding:0 3px;font-weight:bold;text-shadow:1px 1px 0 #000}
+.badges .sr,.badges .dotb,.badges .lockb,.badges .initb{display:block}
+.badges .lockb.off{display:none}
+
+/* tooltip + menu */
+.tt{position:fixed;z-index:60;display:none;pointer-events:none;background:linear-gradient(#0c0c1ef2,#05050ff5);border:2px solid #7a7a98;border-radius:6px;box-shadow:0 0 0 1px #000;padding:6px 10px;font-size:12px;line-height:1.5;white-space:nowrap}
+.tt .ti{color:var(--gold);font-size:14px}
+.tt .g{color:#4cff6a}.tt .gr{color:#9a9a9a}.tt .r{color:#ff5050}.tt .y{color:#ffd100}.tt hr{border:0;border-top:1px solid #3a3a4a;margin:4px 0}
+.menu{position:fixed;z-index:70;display:none;min-width:190px;background:linear-gradient(#0c0c1ef6,#05050ffa);border:2px solid #7a7a98;border-radius:6px;box-shadow:0 0 0 1px #000,0 6px 16px #000a;padding:4px;font-size:13px}
+.menu .it{display:flex;align-items:center;gap:6px;padding:3px 8px 3px 6px;border-radius:2px;color:#fff;cursor:pointer;white-space:nowrap;position:relative}
+.menu .it:hover{background:#ffffff26;color:var(--gold)}
+.menu .ck{width:14px;text-align:center;color:var(--gold);flex:none}
+.menu .ar{margin-left:auto;padding-left:14px;color:#aaa}
+.menu .sepl{border-top:1px solid #4a4a5a;margin:4px 2px}
+.menu .ver{color:#8a8a8a;font-size:11px;padding:2px 8px 2px 24px;cursor:default}
+.menu .sub{position:absolute;left:100%;top:-6px;display:none;min-width:170px;background:linear-gradient(#0c0c1ef6,#05050ffa);border:2px solid #7a7a98;border-radius:6px;padding:4px;margin-left:2px;box-shadow:0 6px 16px #000a}
+.menu .sub.left{left:auto;right:100%;margin:0 2px 0 0}
+.menu .it:hover>.sub{display:block}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:80;background:#000000e0;border:2px solid #7a7a98;border-radius:6px;padding:6px 14px;font-size:12px;color:var(--gold);display:none}
+</style>
+</head>
+<body>
+<h1>Healer Forever minimap button</h1>
+<div class="sub">Three friendlier designs on a realistic minimap. Hover for the tooltip, click, shift-click, right-click, and drag the button around the rim. <a href="index.html">Back to the main mockup</a></div>
+
+<div class="panel" id="panel">
+  <h3>Options &gt; General &gt; Minimap button</h3>
+  <div class="path">Each control maps 1:1 to a future addon option. Style also marks the selected card. The missing-buffs slider is only a mockup control.</div>
+  <div class="pg">
+    <div class="r"><label>Button style</label><select data-k="style"><option value="A">A. Classic</option><option value="B">B. Status badges</option><option value="C">C. Right-click menu</option></select></div>
+    <div class="r"><label>Show status badges</label><input type="checkbox" data-k="badges"></div>
+    <div class="r"><label>Right-click action</label><select data-k="rc"><option value="auto">Per design (A/B lock, C menu)</option><option value="menu">Open menu</option><option value="toggle">Toggle lock</option></select></div>
+    <div class="r"><label>Show button</label><input type="checkbox" data-k="show"></div>
+    <div class="r"><label>Lock button position</label><input type="checkbox" data-k="lockPos"></div>
+    <div class="r"><label>Mockup: missing buffs</label><input type="range" data-k="missing" min="0" max="5"><span id="mv" style="color:var(--gold);min-width:12px"></span></div>
+  </div>
+</div>
+
+<div class="cards" id="cards"></div>
+<div class="tt" id="tt"></div>
+<div class="menu" id="menu"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const PRESETS=['5-man Dungeon','Raid — Group 1','Raid — Group 2','Salv Duty'];
+const st={style:'B',badges:true,rc:'auto',show:true,lockPos:false,missing:2,locked:true,bars:true,preset:0};
+const ang={A:220,B:220,C:220};
+const ICON=`<svg viewBox="0 0 32 32"><defs><radialGradient id="g%" cx="50%" cy="45%" r="60%"><stop offset="0" stop-color="#6fa8ff"/><stop offset="1" stop-color="#0c1f58"/></radialGradient><linearGradient id="c%" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fffbd0"/><stop offset="1" stop-color="#e8a820"/></linearGradient></defs><rect width="32" height="32" fill="url(#g%)"/><g stroke="#fff6b0" stroke-width="1.4" stroke-linecap="round" opacity=".8"><path d="M16 2v5M16 25v5M2 16h5M25 16h5M6 6l3.5 3.5M22.5 22.5L26 26M26 6l-3.5 3.5M9.5 22.5L6 26"/></g><path d="M13 7h6v6h6v6h-6v6h-6v-6H7v-6h6z" fill="url(#c%)" stroke="#6a4a08" stroke-width="1"/></svg>`;
+const DESIGN={
+ A:{t:'A. Classic',d:'LibDBIcon-style round gold-ringed button with a clear heal icon, hover glow and a pressed state.',
+  cap:'Standard LibDataBroker launcher via <code>LibDBIcon-1.0</code>, or by hand: border <code>Interface\\Minimap\\MiniMap-TrackingBorder</code>, icon <code>Interface\\Icons\\Spell_Holy_FlashHeal</code> with a circular mask, hover <code>Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight</code> (ADD blend), pressed = icon offset by 1px and darkened (<code>SetPushedTexture</code>). Drag uses the angle from the minimap centre, <code>minimapPos</code> in saved variables. <i>Names from memory, verify.</i>'},
+ B:{t:'B. Status badges',d:'Classic button plus a status ring, a lock badge, a missing-buffs dot, and the active preset initial.',
+  cap:'Same button plus small child textures: lock <code>Interface\\Buttons\\LockButton-Locked-Up</code>, dot <code>Interface\\COMMON\\Indicator-Green</code> / <code>Indicator-Red</code>, ring via <code>Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight</code> tinted, preset initial as a FontString on a small <code>UI-Tooltip-Background</code> pill. Update on events: group roster, <code>UNIT_AURA</code> (out of combat only). <i>Names from memory, verify.</i>'},
+ C:{t:'C. Right-click menu',d:'Icon button with a WoW-style right-click dropdown instead of hidden shortcuts.',
+  cap:'Menu: use the modern <code>Menu</code> system, <code>MenuUtil.CreateContextMenu(owner, function(owner, root) ... end)</code> with <code>root:CreateButton</code>, <code>root:CreateCheckbox</code>, a submenu button with <code>sub:CreateRadio</code> items, <code>root:CreateDivider()</code> and <code>root:CreateTitle</code> for the version line. Do not use <code>UIDropDownMenu</code>: it spreads taint to protected UI. Frame look comes from Blizzard\'s menu templates (<code>UI-Tooltip-Border</code> style). <i>API from memory for 12.x, verify.</i>'}
+};
+const cardsEl=document.getElementById('cards');
+cardsEl.innerHTML=Object.entries(DESIGN).map(([k,D])=>`<div class="card" data-k="${k}"><h2>${D.t}</h2><div class="desc">${D.d}</div><div class="stage"><div class="mm" data-mm="${k}"><div class="zone">Elwynn Forest</div><div class="terrain"></div><div class="ringb"></div><div class="me"></div>
+ <div class="lb" data-b="${k}"><div class="face">${ICON.replace(/%/g,k)}</div><div class="bd"></div><div class="bd2"></div><div class="hl"></div><div class="sr"></div><div class="dotb"></div><div class="lockb">🔒</div><div class="initb"></div></div></div></div><div class="hint">Drag the button around the rim</div><div class="cap"><b>Implementation:</b> ${D.cap}</div></div>`).join('');
+
+const tt=document.getElementById('tt'),menu=document.getElementById('menu'),toast=document.getElementById('toast');
+let dragging=null,downInfo=null;
+function place(k){
+  const mm=document.querySelector(`[data-mm=${k}]`),b=mm.querySelector('.lb'),a=ang[k]*Math.PI/180,r=105;
+  b.style.left=(100+r*Math.cos(a))+'px';b.style.top=(100+r*Math.sin(a))+'px';
+}
+function refresh(){
+  const missing=st.missing,col=missing>0?'#ff5050':'#4cff6a';
+  document.querySelectorAll('.card').forEach(c=>c.classList.toggle('sel',c.dataset.k===st.style));
+  ['A','B','C'].forEach(k=>{
+    const b=document.querySelector(`[data-b=${k}]`);
+    b.classList.toggle('gone',!st.show);b.classList.toggle('nomove',st.lockPos);
+    const showBadges=k==='B'&&st.badges;b.classList.toggle('badges',showBadges);
+    b.style.setProperty('--src',col);
+    b.querySelector('.lockb').classList.toggle('off',!st.locked);
+    b.querySelector('.initb').textContent=PRESETS[st.preset][0];
+    place(k);
+  });
+  document.getElementById('mv').textContent=st.missing;
+  const P=document.getElementById('panel');
+  P.querySelectorAll('[data-k]').forEach(el=>{const v=st[el.dataset.k];if(el.type==='checkbox')el.checked=v;else el.value=v});
+}
+function tipHTML(k){
+  return `<div class="ti">Healer Forever v0.9.0</div><div>Active preset: <span class="y">${PRESETS[st.preset]}</span></div><div>Party bars: ${st.locked?'<span class="g">Locked</span>':'<span class="r">Unlocked</span>'}${st.bars?'':' <span class="gr">(hidden)</span>'}</div><div>Missing buffs: ${st.missing>0?`<span class="r">${st.missing}</span>`:'<span class="g">none</span>'}</div><hr><div><span class="g">Left-click:</span> <span class="gr">Options</span></div><div><span class="g">Right-click:</span> <span class="gr">${rcMode(k)==='menu'?'Menu':'Lock / unlock bars'}</span></div><div><span class="g">Shift-click:</span> <span class="gr">Next buff preset</span></div><div><span class="g">Drag:</span> <span class="gr">Move button</span></div>`;
+}
+function rcMode(k){return st.rc==='auto'?(k==='C'?'menu':'toggle'):st.rc}
+function say(m){toast.textContent=m;toast.style.display='block';clearTimeout(say.t);say.t=setTimeout(()=>toast.style.display='none',1800)}
+function closeMenu(){menu.style.display='none'}
+function openMenu(x,y){
+  const ck=v=>`<span class="ck">${v?'✓':''}</span>`;
+  menu.innerHTML=`<div class="it" data-a="opts">${ck(0)}Open options</div>
+   <div class="it" data-a="lock">${ck(st.locked)}Lock bars</div>
+   <div class="it">${ck(0)}Buff preset<span class="ar">▶</span><div class="sub" id="sub">${PRESETS.map((p,i)=>`<div class="it" data-a="preset" data-i="${i}"><span class="ck">${st.preset===i?'●':'○'}</span>${p}</div>`).join('')}</div></div>
+   <div class="it" data-a="bars">${ck(st.bars)}Show party bars</div>
+   <div class="it" data-a="hide">${ck(0)}Hide minimap button</div>
+   <div class="sepl"></div><div class="ver">Healer Forever v0.9.0</div>`;
+  menu.style.display='block';
+  const w=menu.offsetWidth,h=menu.offsetHeight;
+  menu.style.left=Math.min(x,innerWidth-w-10)+'px';menu.style.top=Math.min(y,innerHeight-h-10)+'px';
+  const sub=menu.querySelector('#sub');sub.classList.toggle('left',(parseFloat(menu.style.left)+w+180)>innerWidth);
+}
+menu.addEventListener('click',e=>{
+  const it=e.target.closest('[data-a]');if(!it)return;const a=it.dataset.a;
+  if(a==='opts')say('Options window would open (mockup)');
+  if(a==='lock'){st.locked=!st.locked;say('Bars '+(st.locked?'locked':'unlocked'))}
+  if(a==='preset'){st.preset=+it.dataset.i;say('Buff preset: '+PRESETS[st.preset])}
+  if(a==='bars'){st.bars=!st.bars;say('Party bars '+(st.bars?'shown':'hidden'))}
+  if(a==='hide'){st.show=false;say('Minimap button hidden. Re-enable it under Options > General')}
+  closeMenu();refresh();
+});
+document.addEventListener('mousedown',e=>{if(!(e.target instanceof Element&&e.target.closest('.menu')))closeMenu()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMenu()});
+document.addEventListener('contextmenu',e=>{if(e.target instanceof Element&&e.target.closest('.lb'))e.preventDefault()});
+
+cardsEl.addEventListener('pointerdown',e=>{
+  const b=e.target instanceof Element&&e.target.closest('.lb');if(!b||e.button!==0)return;
+  b.classList.add('down');downInfo={k:b.dataset.b,x:e.clientX,y:e.clientY,moved:false,b};tt.style.display='none';
+});
+document.addEventListener('pointermove',e=>{
+  if(downInfo&&!st.lockPos){
+    if(!downInfo.moved&&Math.hypot(e.clientX-downInfo.x,e.clientY-downInfo.y)>4){downInfo.moved=true;downInfo.b.classList.add('drag');closeMenu()}
+    if(downInfo.moved){const r=document.querySelector(`[data-mm=${downInfo.k}]`).getBoundingClientRect();ang[downInfo.k]=Math.atan2(e.clientY-(r.top+100),e.clientX-(r.left+100))*180/Math.PI;place(downInfo.k);return}
+  }
+  const el=e.target instanceof Element?e.target:null,b=el&&el.closest('.lb');
+  if(b&&!downInfo){tt.innerHTML=tipHTML(b.dataset.b);tt.style.display='block';tt.style.left=Math.min(e.clientX+16,innerWidth-250)+'px';tt.style.top=(e.clientY+16)+'px'}
+  else if(!downInfo)tt.style.display='none';
+});
+document.addEventListener('pointerup',e=>{
+  if(!downInfo)return;const d=downInfo;downInfo=null;d.b.classList.remove('down','drag');
+  if(!d.moved||st.lockPos){
+    if(e.shiftKey){st.preset=(st.preset+1)%PRESETS.length;say('Buff preset: '+PRESETS[st.preset])}
+    else say('Options window would open (mockup)');
+    refresh();
+  }
+});
+cardsEl.addEventListener('contextmenu',e=>{
+  const b=e.target instanceof Element&&e.target.closest('.lb');if(!b)return;e.preventDefault();tt.style.display='none';
+  if(rcMode(b.dataset.b)==='menu'){const r=b.getBoundingClientRect();openMenu(r.right+4,r.top)}
+  else{st.locked=!st.locked;say('Bars '+(st.locked?'locked':'unlocked'));refresh()}
+});
+const P=document.getElementById('panel');
+P.addEventListener('input',e=>{const k=e.target.dataset.k;if(!k)return;st[k]=e.target.type==='checkbox'?e.target.checked:e.target.type==='range'?+e.target.value:e.target.value;refresh()});
+refresh();
+</script>
+</body>
+</html>
