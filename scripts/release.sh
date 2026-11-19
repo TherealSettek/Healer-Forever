@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Usage: scripts/release.sh <version>   e.g. scripts/release.sh 0.9.0
-# Runs the tests, then builds dist/HealerForever-v<version>.zip with the HealerForever folder at the zip root.
+# Builds dist/HealerForever-v<version>.zip with the HealerForever folder at the zip root.
+# It does NOT run the tests (owner decision 2026-11-19): use scripts/release-tests.sh <version> to run the full
+# suite first and then build, or run the test suite yourself right before this script.
 set -euo pipefail
 
 VERSION="${1:-}"
@@ -12,12 +14,7 @@ fi
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-echo "== running tests =="
-if [ "${HF_RELEASE_SKIP_TESTS:-}" = "1" ]; then
-  echo "WARNING: HF_RELEASE_SKIP_TESTS=1 set: tests skipped (packaging check only, never for a real release)" >&2
-else
-  ./run-tests.sh || { echo "tests failed: aborting release" >&2; exit 1; }
-fi
+echo "== building HealerForever $VERSION (tests are not run here; scripts/release-tests.sh runs them first) =="
 
 DIST="$ROOT/dist"
 STAGE="$DIST/HealerForever"

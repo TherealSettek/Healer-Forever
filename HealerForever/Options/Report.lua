@@ -103,6 +103,11 @@ local function settingsSummary(out)
         text(a.timerPos), text(a.onlyMine), text(a.onlyDispellable), text(a.colorDebuffBorder), text(a.tooltipIcons))
     out[#out + 1] = string.format("Buffs: warn=%s threshold=%s rebuffPercent=%s showSolo=%s", text(b.warn),
         text(b.threshold), text(b.rebuffPercent), text(b.showSolo))
+    local rd = db.raid or {}
+    out[#out + 1] = string.format("Raid: mode=%s onlyAbove5=%s scale=%s size=%sx%s spacing=%s groups=%s/%s labels=%s sort=%s hideEmpty=%s names=%s healthText=%s rangeAlpha=%s",
+        text(rd.layoutMode), text(rd.onlyAbove5), text(rd.scale), text(rd.width), text(rd.height), text(rd.spacing),
+        text(rd.groupArrange), text(rd.groupsPerLine), text(rd.groupLabels), text(rd.sortWithin), text(rd.hideEmptyGroups),
+        text(rd.showNames), text(rd.healthText), text(rd.rangeAlpha))
     out[#out + 1] = string.format("Presets: %d (active %s) | click bindings: %d | pins=%s minimapButton=%s",
         type(db.presets) == "table" and #db.presets or 0, text(db.activePreset),
         (function() local n = 0; if type(db.bindings) == "table" then for _ in pairs(db.bindings) do n = n + 1 end end; return n end)(), text(db.pins and db.pins.enabled),
@@ -166,11 +171,16 @@ function Report.Build()
         local index = GetSpecialization and safe(GetSpecialization)
         if index and GetSpecializationInfo then spec = select(2, GetSpecializationInfo(index)) end
         out[#out + 1] = string.format("Player: %s%s, level %s", text(class), spec and (" (" .. text(spec) .. ")") or "", text(level))
-        local raid = IsInRaid and IsInRaid()
+        local raid = ns.InRaid() -- secret-safe: IsInRaid() can be a secret value (no truth test on it)
         out[#out + 1] = string.format("Group: %s, size %d, combat: %s", raid and "raid" or (ns.InGroup() and "party" or "solo"),
             groupSize(), tostring(ns.InCombat()))
+        local RF = ns.RaidFrames
+        out[#out + 1] = RF and RF:StatusLine() or "Layout: party (raid frames not loaded)"
     end)
     section(out, "Settings summary", function() settingsSummary(out) end)
+    section(out, "Performance (/hf perf)", function()
+        for _, line in ipairs(ns.Perf.Lines()) do out[#out + 1] = line end
+    end)
     section(out, "Other loaded addons", function() addonList(out) end)
     section(out, "Last errors", function()
         local errors = ns.FormatErrors(MAX_ERRORS)

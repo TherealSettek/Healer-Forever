@@ -150,6 +150,7 @@ local function armEntry(unit, key)
     end
     return entry
 end
+BB.ArmEntry = armEntry
 
 -- Shows the member's next missing buff (entry) with a count badge when several are missing.
 -- state: nil (hidden), "ready" (castable), "unreachable" (dimmed, disarmed), "unknown" (greyed: not in the spellbook)
@@ -238,10 +239,12 @@ local function gather(unit, cache)
     if cache then cache[unit] = info end
     return info
 end
+BB.Gather = gather
 
 -- Missing party buffs for one unit, in catalog order. Only buffs the player's class can cast are considered.
--- Returns missing (array of keys), reason and a diagnostics table.
-local function evaluate(unit, cache)
+-- Returns missing (array of keys), reason and a diagnostics table. percentOverride (raid markers) replaces the
+-- rebuff % from the buff settings; the party buttons pass nil.
+local function evaluate(unit, cache, percentOverride)
     local diag = { unit = unit }
     local class = ns.PlayerClass()
     local castable = {}
@@ -262,6 +265,7 @@ local function evaluate(unit, cache)
     local threshold = ns.db.buffs.warn and ns.db.buffs.threshold or 0
     -- class buffs: rebuff when less than rebuffPercent% of the buff's duration is left (0 = only when gone)
     local percent = ns.db.buffs.warn and ns.db.buffs.rebuffPercent or 0
+    if percentOverride ~= nil then percent = percentOverride end
     local assigned = {}
     for _, key in ipairs(Presets.CellBuffs(preset, info.class, info.role, info.isSelf)) do
         if castable[key] then assigned[#assigned + 1] = key end
@@ -290,6 +294,7 @@ local function evaluate(unit, cache)
     end
     return missing, reasonText(info.class, info.role, info.isSelf), diag
 end
+BB.EvaluateUnit = evaluate
 
 local function extraMatches(entry, aura)
     return (entry.spellId and aura.spellId == entry.spellId) or (entry.spell and aura.name == entry.spell)
@@ -485,8 +490,14 @@ local function applySmart(pendingList, cache)
         smart.castSpell, smart.castUnit = pick.spell, pick.unit
         smart.icon:SetTexture(ns.SpellTexture(pick.spell))
         local name = UnitName(pick.unit)
-        smart.label:SetText(name or pick.unit)
-        smart.pendingText = pick.spell .. " on " .. tostring(name or pick.unit)
+        if issecret(name) then
+            -- a secret name goes straight into the widget; the debug text uses the unit token instead
+            smart.label:SetText(name)
+            smart.pendingText = pick.spell .. " on " .. pick.unit
+        else
+            smart.label:SetText(name or pick.unit)
+            smart.pendingText = pick.spell .. " on " .. tostring(name or pick.unit)
+        end
     else
         clearSecure(smart)
         smart.icon:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
@@ -510,10 +521,17 @@ local function applySmart(pendingList, cache)
 end
 
 -- Number of missing buffs across all members (blessing-type buffs and role buffs); used by the minimap button.
+-- While the raid layout is active the class buffs are counted on the raid bars instead (party1..4 are raid members
+-- too, so adding both would count them twice).
 function BB:MissingCount()
     local n = 0
-    for _, b in ipairs(BB.buttons) do
-        if b.buffKey then n = n + (b.missingCount or 1) end
+    local RF = ns.RaidFrames
+    if RF and RF.IsActive and RF:IsActive() and RF.MissingCount then
+        n = n + RF:MissingCount()
+    else
+        for _, b in ipairs(BB.buttons) do
+            if b.buffKey then n = n + (b.missingCount or 1) end
+        end
     end
     for _, b in ipairs(BB.extraButtons) do
         if b.extraSpell then n = n + 1 end
@@ -560,6 +578,17 @@ function BB:RefreshNow()
             pending[#pending + 1] = { unit = b.unit, role = info and info.role, kind = "extra",
                 spell = extras[b.unit].entry.spell, isSelf = b.unit == "player" }
         end
+    end
+    local RF = ns.RaidFrames
+    if RF and RF.IsActive and RF:IsActive() and RF.PendingList then
+        -- raid layout: the class buffs pending on the raid bars replace the party ones (same people, other tokens);
+        -- role buffs stay as they are
+        local merged = {}
+        for _, e in ipairs(pending) do
+            if e.kind ~= "blessing" then merged[#merged + 1] = e end
+        end
+        for _, e in ipairs(RF:PendingList()) do merged[#merged + 1] = e end
+        pending = merged
     end
     applySmart(pending, cache)
 end
@@ -647,7 +676,11 @@ ns:On("FRAMES_CREATED", function()
     BB:ApplySmartPosition()
     BB:Refresh()
     if C_Timer and C_Timer.NewTicker then
-        C_Timer.NewTicker(0.5, function() BB:RefreshNow() end)
+        C_Timer.NewTicker(0.5, function()
+            local t0 = ns.perfOn and debugprofilestop()
+            BB:RefreshNow()
+            if t0 then ns.Perf.Add("bb", t0) end
+        end)
     end
 end)
 ns:RegisterEvent("UNIT_AURA", function(_, unit)

@@ -210,16 +210,60 @@ local function applyToButton(button, bindings, res, resOOC)
     end
 end
 
+-- Raid buttons while the party layout is active: no click attributes, no hover bindings, no state drivers (idle).
+-- Buttons that were never armed are left untouched.
+local function disarmButton(button)
+    if not button.hfArmed then return end
+    clearButton(button)
+    if ClearOverrideBindings then ClearOverrideBindings(button) end
+    UnregisterStateDriver(button, "hfmeta")
+    button:SetAttribute("state-hfmeta", nil)
+    UnregisterStateDriver(button, "hfdead")
+    button:SetAttribute("state-hfdead", nil)
+    button.hfArmed = nil
+end
+
+local function resolveRes()
+    local res, resOOC
+    if ns.db.resurrectOnClick then res, resOOC = ns.PlayerRes() end
+    return res, resOOC
+end
+
+-- Applies the bindings to a list of unit buttons (out of combat only: the caller queues it otherwise).
+function CC:ApplyToButtons(list)
+    local res, resOOC = resolveRes()
+    local bindings = CC:EffectiveBindings()
+    for _, button in ipairs(list or {}) do
+        applyToButton(button, bindings, res, resOOC)
+        button.hfArmed = true
+    end
+end
+
+-- Raid buttons: armed (strict @raidN macros) while the raid layout is active, disarmed otherwise.
+function CC:ApplyRaidNow()
+    local RF = ns.RaidFrames
+    if not (RF and RF.anchor) then return end
+    if RF:IsActive() then
+        CC:ApplyToButtons(RF:ActiveButtons())
+    else
+        for _, button in ipairs(RF.buttons) do disarmButton(button) end
+    end
+end
+
+function CC:ApplyRaid(silent)
+    ns:AfterCombat("clickcast-raid", function() CC:ApplyRaidNow() end, silent)
+end
+
 function CC:ApplyNow()
     local UF = ns.UnitFrames
     if not UF.anchor then return end
-    local res, resOOC
-    if ns.db.resurrectOnClick then res, resOOC = ns.PlayerRes() end
+    local res, resOOC = resolveRes()
     CC.signature = tostring(res) .. "|" .. tostring(resOOC) .. "|" .. tostring(ns.db.resurrectOnClick)
     local bindings = CC:EffectiveBindings()
     for _, button in ipairs(UF.buttons) do
         applyToButton(button, bindings, res, resOOC)
     end
+    CC:ApplyRaidNow()
     ns:Fire("CLICKCAST_APPLIED")
 end
 
@@ -237,6 +281,8 @@ function CC:ApplyIfSpellsChanged()
 end
 
 ns:On("FRAMES_CREATED", function() CC:Apply(true) end)
+ns:On("RAID_FRAMES_CREATED", function() CC:ApplyRaid(true) end)
+ns:On("RAID_LAYOUT_CHANGED", function() CC:ApplyRaid(true) end)
 ns:On("CONFIG_CHANGED", function(group)
     if group == "bindings" or group == "all" or group == "general" then CC:Apply() end
 end)

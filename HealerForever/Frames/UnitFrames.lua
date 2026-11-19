@@ -154,6 +154,11 @@ local function setDeficit(fs, missing)
     end
 end
 
+-- shared with the raid frames (Frames/RaidFrames.lua, Frames/RaidStyle.lua)
+UF.ClassColorFor = classColorFor
+UF.SetPercentText = setPercentText
+UF.SetDeficit = setDeficit
+
 function UF:UpdateHealthText(button)
     local fs = button.healthText
     if button.isPet or button.state ~= "alive" then
@@ -275,6 +280,8 @@ local function computeState(unit)
     return "dead"
 end
 
+UF.ComputeState = computeState
+
 local function resIconFor(button)
     local cls = button.classToken
     local res = cls and ns.Classes.GetResSpell(cls)
@@ -330,7 +337,9 @@ function UF:UpdateName(button)
     if ns.db.frames.colorMode == "class" then
         button.name:SetTextColor(1, 1, 1)
     else
-        button.name:SetTextColor(classColorFor(button.ownerUnit or unit))
+        -- only r, g, b: classColorFor also returns the class token, which SetTextColor would take as alpha
+        local r, g, b = classColorFor(button.ownerUnit or unit)
+        button.name:SetTextColor(r, g, b)
     end
 end
 
@@ -423,6 +432,8 @@ local function layoutDashes(button, color, dash, gap)
     for i = used + 1, #button.dashTex do button.dashTex[i]:Hide() end
     frame:SetShown(used > 0)
 end
+
+UF.LayoutDashes = layoutDashes
 
 function UF:ApplyRangeVisuals(button)
     local range = Util.NormalizeRange(ns.db.frames.range)
@@ -589,6 +600,9 @@ function UF:UpdateAll(button)
 end
 
 function UF:UpdateEverything()
+    -- hard-suspended (raid layout, not Auto in a raid): nothing to update. Soft: the bars stay current because a
+    -- visibility driver may show them in combat when the raid ends.
+    if UF.suspended and not UF.softSuspended then return end
     for _, button in ipairs(UF.buttons) do
         UF:UpdateAll(button)
     end
@@ -784,12 +798,14 @@ local function createAnchor()
         acc = acc + elapsed
         if acc < 0.25 then return end
         acc = 0
+        local t0 = ns.perfOn and debugprofilestop()
         for _, button in ipairs(UF.buttons) do
             if button:IsShown() then
                 UF:UpdateState(button)
                 UF:UpdateRange(button)
             end
         end
+        if t0 then ns.Perf.Add("uf", t0) end
     end)
 end
 
@@ -1014,6 +1030,8 @@ end
 
 function UF:Layout(silent)
     if not UF.anchor then return end
+    -- the raid layout is active: the party frames stay hidden; un-suspending runs the layout
+    if UF.suspended then return end
     if ns.InCombat() then
         ns:AfterCombat("uf-layout", function() UF:Layout() end, silent)
         return
@@ -1078,6 +1096,53 @@ function UF:Layout(silent)
     ns:Fire("FRAMES_LAID_OUT")
 end
 
+-- Raid layout switch (out of combat only; the caller queues it otherwise). Un-suspended: today's party Layout runs
+-- again unchanged (the only state when no raid layout is active). Suspended:
+--   hard (soft = false: "Always raid", or Auto outside a raid): the party / pet buttons lose their unit watch and are
+--        hidden with the party anchor.
+--   soft (Auto inside a raid): the buttons keep their unit watch and layout; the party anchor gets the secure
+--        visibility driver "[group:raid] hide; show", so when the raid ends in combat the party frames show at once
+--        (the game drives Show/Hide; no addon code runs in the protected path). Unregistered on un-suspend.
+function UF:SetSuspended(suspended, soft)
+    if not UF.anchor then return end
+    suspended = suspended and true or false
+    soft = (suspended and soft) and true or false
+    if ns.InCombat() then
+        ns:AfterCombat("uf-suspend", function() UF:SetSuspended(suspended, soft) end, true)
+        return
+    end
+    if suspended == (UF.suspended or false) and soft == (UF.softSuspended or false) then return end
+    if UF.softSuspended then
+        UnregisterStateDriver(UF.anchor, "visibility")
+        UF.softSuspended = nil
+    end
+    if suspended then
+        if UF.hovered and GameTooltip then GameTooltip:Hide() end
+        UF.hovered = nil
+        if soft then
+            if UF.suspended then
+                -- hard -> soft: the party layout (unit watch, cells) comes back first
+                UF.suspended = nil
+                UF:Layout(true)
+            end
+            UF.suspended, UF.softSuspended = true, true
+            UF.anchor:Hide()
+            RegisterStateDriver(UF.anchor, "visibility", "[group:raid] hide; show")
+        else
+            UF.suspended = true
+            for _, button in ipairs(UF.buttons) do
+                if button.watched then UnregisterUnitWatch(button); button.watched = false end
+                button:Hide()
+            end
+            UF.anchor:Hide()
+        end
+    else
+        UF.suspended = nil
+        UF.anchor:Show()
+        UF:Layout()
+    end
+end
+
 function UF:ApplyPoint()
     local p = ns.db.frames.point
     UF.anchor:ClearAllPoints()
@@ -1111,6 +1176,8 @@ end
 -- /hf debug click: what the player's unit button would do on a click, and what could be covering it.
 function UF:DebugClick(unit)
     local button = UF.byUnit[unit or "player"]
+    local RF = ns.RaidFrames
+    if (not button or (unit and unit:match("^raid%d+$"))) and RF and RF.byUnit then button = RF.byUnit[unit] or button end
     if not button then ns:Print("no such unit button") return end
     local function say(text) ns:Print(text) end
     say(string.format("%s button: shown=%s alpha=%.2f mouse=%s level=%d strata=%s combat=%s", button.unit,
@@ -1188,9 +1255,11 @@ function UF:ShowTooltip(button)
         local r, g, b = classColorFor(button.ownerUnit or unit)
         GameTooltip:AddLine(UnitName(unit), r, g, b)
     end
-    if button.unit ~= "player" and ns.Exists(unit) then
+    if button.state == "offline" and ns.Exists(unit) then
+        GameTooltip:AddLine("Offline", 0.67, 0.67, 0.67)
+    elseif button.unit ~= "player" and ns.Exists(unit) then
         local state = button.rangeState or "in"
-        if state == "secret" then
+        if state == "secret" or state == "offline" then
             state = nil
         elseif state == "hidden" then
             GameTooltip:AddLine("Not visible (too far or in another phase)", 0.5, 0.6, 0.75)
@@ -1216,6 +1285,7 @@ function UF:ShowTooltip(button)
         GameTooltip:AddDoubleLine(ns.Bindings.ButtonLabel(entry.button), label, 0.8, 0.8, 0.8, 1, 1, 1)
     end
     GameTooltip:AddLine("Hold Shift / Ctrl / Alt / Cmd to see other bindings", 0.5, 0.5, 0.5)
+    if button.tooltipExtra then button.tooltipExtra(button, GameTooltip) end
     GameTooltip:Show()
 end
 
@@ -1314,6 +1384,7 @@ function UF:Init()
             return
         end
         if group == "presets" or group == "bindings" or group == "pins" or group == "minimap" then return end
+        if group == "raid" then return end
         UF:Layout()
     end)
 end

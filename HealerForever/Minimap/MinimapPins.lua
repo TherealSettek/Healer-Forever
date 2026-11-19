@@ -464,7 +464,9 @@ ns:RegisterEvent("PLAYER_LOGIN", function()
         acc = acc + elapsed
         if acc < UPDATE_INTERVAL then return end
         acc = 0
+        local t0 = ns.perfOn and debugprofilestop()
         MP:Update()
+        if t0 then ns.Perf.Add("mp", t0) end
     end)
     MP.driver = driver
 end)

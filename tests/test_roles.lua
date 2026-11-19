@@ -53,7 +53,10 @@ describe("roles: ResolveBuff", function()
             local entry = preset.map[class]
             local valid = false
             for _, r in ipairs(ROLES[class]) do if r == role then valid = true end end
-            key = (valid and entry[role]) or entry.DEFAULT
+            -- an empty role entry ("none") follows the class row; only DEFAULT/self "none" mean no buff
+            local own = valid and entry[role]
+            if own == "none" or own == "" then own = nil end
+            key = own or entry.DEFAULT
         end
         if key == "none" then return nil end
         return key
@@ -110,10 +113,12 @@ describe("roles: ResolveBuff", function()
         assertEquals(R(p, "HUNTER", "HEALER"), "might")
         assertEquals(R(p, "HUNTER", "DAMAGER"), "might")
     end)
-    it("'none' -> nil (role entry, DEFAULT, and none overriding DEFAULT)", function()
+    it("'none' on DEFAULT -> nil; 'none' on a role follows the class row (DEFAULT)", function()
         local p = { map = { PALADIN = { DEFAULT = "might", TANK = "none" }, MAGE = { DEFAULT = "none" } } }
-        assertNil(R(p, "PALADIN", "TANK"))
+        assertEquals(R(p, "PALADIN", "TANK"), "might", "an empty role follows the class row")
         assertEquals(R(p, "PALADIN", "HEALER"), "might")
+        p.map.PALADIN.DEFAULT = "none"
+        assertNil(R(p, "PALADIN", "TANK"), "role none + class row none = no buff")
         assertNil(R(p, "MAGE", "DAMAGER")); assertNil(R(p, "MAGE", nil))
     end)
     it("unknown class / nil class -> nil", function()

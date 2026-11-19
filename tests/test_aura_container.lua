@@ -90,7 +90,31 @@ describe("aura container: creation", function()
         for _, l in ipairs(mock.printed) do assertNil(l:find("aura icons update after combat", 1, true)) end
     end)
     it("every button has exactly one buff and one debuff container: a raw 'AuraContainer' frame, parented to the zone, template CustomAuraContainerTemplate", function()
-        assertEquals(#mock.containers, 2 * #members(ns))
+        -- party containers: 2 per member. The raid containers are lazy: none exist before the first switch to the raid layout
+        local party = 0
+        for _, c in ipairs(mock.containers) do
+            local owner = st(c.frame).parent
+            for _, b in ipairs(members(ns)) do if b.zones and (owner == b.zones.buff or owner == b.zones.debuff) then party = party + 1 end end
+        end
+        assertEquals(party, 2 * #members(ns))
+        assertEquals(#mock.containers, 2 * #members(ns), "only the party containers at login (10)")
+        assertEquals(#mock.containers, 10)
+        for _, b in ipairs(ns.RaidFrames.buttons) do assertNil(b.debuffContainer); assertNil(b.glowContainer) end
+        -- joining a raid (default display glowIcons): one icon + one glow container per raid button (40 + 40)
+        mock.setRaid(10); mock.fire("GROUP_ROSTER_UPDATE"); mock.flushTimers()
+        assertEquals(ns.RaidFrames.active, "raid")
+        local icons, glows = 0, 0
+        for _, b in ipairs(ns.RaidFrames.buttons) do
+            if b.debuffContainer then icons = icons + 1 end
+            if b.glowContainer then glows = glows + 1 end
+        end
+        assertEquals(icons, 40); assertEquals(glows, 40)
+        assertEquals(#mock.containers, 10 + 80, "party containers + 40 icon + 40 glow containers")
+        -- leaving keeps them (pointed at "none"), no more are made
+        mock.setRaid(0); mock.fire("GROUP_ROSTER_UPDATE"); mock.flushTimers()
+        assertEquals(ns.RaidFrames.active, "party")
+        assertEquals(#mock.containers, 90)
+        assertEquals(#mock.errors, 0, errstr())
         for _, b in ipairs(members(ns)) do
             for _, kind in ipairs({ "buff", "debuff" }) do
                 local c = b.auraContainers[kind]

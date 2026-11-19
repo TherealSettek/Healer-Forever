@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Healer Forever Raid Frames</title>
+<style>
+:root{--gold:#ffd100;--muted:#9a927e;--oor:#9a9a9a;--hid:#6a86a8}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font-family:"Friz Quadrata TT",Georgia,"Times New Roman",serif;color:#e8e2d0;background:radial-gradient(ellipse at 30% 70%,#3b4a2a 0%,#1f2a18 35%,#0d120b 70%),#0d120b;padding:16px}
+a{color:var(--gold)}
+h1{margin:0 0 4px;font-size:20px;color:var(--gold);font-weight:normal;text-shadow:1px 1px 1px #000}
+.sub{font-size:12px;color:#ffffffa0;margin-bottom:10px}
+.note{background:#1a1408cc;border:1px solid #6a5a2a;border-radius:4px;padding:8px 10px;font-size:12px;color:#e8d9a8;margin:10px 0;line-height:1.5}
+.note code,.cap code{color:#cfc7aa;font:11px ui-monospace,Menlo,monospace}
+.top{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:12px;align-items:start}
+@media (max-width:1100px){.top{grid-template-columns:1fr}}
+.panel{background:#000000c8;border:2px solid #8a8a94;border-radius:4px;padding:10px 12px}
+.panel h3{margin:0 0 4px;font-size:14px;color:var(--gold);font-weight:normal}
+.path{font-size:11px;color:var(--muted);margin-bottom:8px}
+.pg{display:grid;gap:6px 18px;grid-template-columns:repeat(auto-fill,minmax(285px,1fr))}
+.pg .h{grid-column:1/-1;font-size:11px;color:var(--gold);border-bottom:1px solid #4a4a52;margin-top:6px;padding-bottom:2px}
+.pg .r{display:flex;align-items:center;gap:8px;justify-content:space-between;font-size:12px;min-height:24px}
+.pg .r>label:first-child{min-width:140px}
+.pg .r.dis{opacity:.4}
+.pg .r.prev>label:first-child{color:#9fb7d8}
+.pg input[type=range]{accent-color:#d8a83a;width:110px}
+.pg .v{min-width:38px;text-align:right;color:var(--gold);font-size:11px}
+.pg .rr{display:flex;align-items:center;gap:4px}
+select{background:#000;color:#e8e2d0;border:2px solid #6a6a74;border-radius:3px;padding:2px 5px;font:12px Georgia,serif;max-width:190px}
+input[type=checkbox]{accent-color:#d8a83a;width:15px;height:15px}
+button.b{background:linear-gradient(#8a1a10,#4a0a06);color:var(--gold);border:2px solid #b8a070;border-radius:4px;font:12px Georgia,serif;padding:3px 10px;cursor:pointer}
+/* party reference */
+.party h3{margin:0 0 2px}
+.party .pnote{font-size:11px;color:var(--muted);line-height:1.45;margin-bottom:8px}
+.pbar{margin:0 0 6px}
+.pbuf{display:flex;gap:2px;height:13px;margin-bottom:2px}
+.pbuf i,.pdeb i{display:block;width:13px;height:13px;border:1px solid #000;border-radius:2px}
+.pdeb{display:flex;gap:2px;height:15px;margin-top:2px}.pdeb i{width:15px;height:15px;border:2px solid}
+.php{position:relative;height:24px;background:#2a0d0d;border:2px solid #8a8aa0;border-radius:4px;box-shadow:0 0 0 1px #000;overflow:hidden}
+.php .f{position:absolute;left:0;top:0;bottom:0;background-image:linear-gradient(rgba(255,255,255,.38),rgba(255,255,255,.04) 48%,rgba(0,0,0,.28))}
+.php span{position:absolute;top:50%;transform:translateY(-50%);font-size:11px;color:#fff;text-shadow:1px 1px 0 #000,-1px -1px 0 #000;z-index:2}
+.ppw{height:6px;margin-top:2px;background:#111;border:2px solid #8a8aa0;border-radius:3px;box-shadow:0 0 0 1px #000;overflow:hidden}
+.ppw i{display:block;height:100%;background:#0000ff}
+.pbadge{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:3;font-size:9px;color:#fff;background:#000000d0;border:1px solid #c86a5a;border-radius:9px;padding:0 6px;white-space:nowrap}
+.pgold{position:absolute;right:3px;top:3px;width:16px;height:16px;border:1px solid #ffd100;border-radius:3px;background:radial-gradient(circle at 40% 35%,#fff3b0,#d8a020 55%,#6a4a08);z-index:3;box-shadow:0 0 5px #ffd100aa}
+/* cards */
+.cards{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(640px,1fr));align-items:start;margin-top:12px}
+.card{background:#000000a0;border:2px solid #6a6a74;border-radius:4px;padding:10px;cursor:pointer;min-width:0}
+.card.sel{border-color:var(--gold);box-shadow:0 0 8px #ffd10066}
+.card h2{margin:0 0 2px;font-size:15px;color:var(--gold);font-weight:normal}
+.card h2 small{font-size:11px;color:var(--muted);margin-left:6px}
+.card .desc{font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.45}
+.scene{background:linear-gradient(160deg,#2c3a20,#1a2414 60%,#10170c);border:1px solid #2a3320;border-radius:3px;padding:12px;overflow:auto}
+.cap{margin-top:8px;font-size:11px;color:var(--muted);line-height:1.5;border-top:1px solid #3a3a42;padding-top:6px}
+/* raid grid */
+.raid{display:grid;align-items:start;justify-content:start;width:max-content}
+.grp{display:flex;align-items:flex-start}
+.grp .gl{font-size:10px;color:var(--gold);text-shadow:1px 1px 0 #000;line-height:1;white-space:nowrap}
+.grp.col{flex-direction:column}.grp.col .gl{margin-bottom:3px}
+.grp.row{flex-direction:row;align-items:center}.grp.row .gl{width:18px;flex:none}
+.cells{display:flex}
+.grp.col .cells{flex-direction:column}
+.empty{border:1px dashed #ffffff26;color:#ffffff40;font-size:9px;display:grid;place-items:center}
+.c{position:relative;flex:none;cursor:pointer}
+.c .bx{position:absolute;inset:0;overflow:hidden}
+.c .fill{position:absolute;left:0;top:0;bottom:0}
+.c .inc{position:absolute;top:0;bottom:0;background:#7dff9b70}
+.c .mana{position:absolute;left:0;right:0;bottom:0;background:#000;border-top:1px solid #000}
+.c .mana i{display:block;height:100%;background:#1e3cff}
+.c .nm,.c .tx{position:absolute;top:50%;transform:translateY(-50%);white-space:nowrap;color:#fff;z-index:3;text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;line-height:1}
+.c .nm{left:3px;overflow:hidden}
+.c .tx{right:3px}
+.c .ov{position:absolute;inset:0;z-index:4;pointer-events:none}
+.c .tgt{position:absolute;inset:-3px;border:2px solid #fff;border-radius:3px;z-index:6;pointer-events:none;box-shadow:0 0 4px #fff8}
+.c .agg{position:absolute;inset:-2px;border:1px solid #ff2020;border-radius:3px;z-index:5;pointer-events:none;box-shadow:0 0 3px #ff2020}
+.c .mk{position:absolute;z-index:5;pointer-events:none}
+.c .dot{border-radius:50%;border:1px solid #000}
+.c .sq{border:1px solid #000}
+.c .ic{border-radius:2px;display:grid;place-items:center;font-size:7px;font-weight:bold;color:#fff;text-shadow:0 0 2px #000;line-height:1}
+.c.hl .bx{filter:brightness(1.25)}
+/* legend */
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:11px;color:#cfc7aa;margin-top:8px}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend b{display:inline-block;width:14px;height:10px}
+.tt{position:fixed;z-index:50;display:none;pointer-events:none;background:linear-gradient(#0c0c1ef2,#05050ff5);border:2px solid #7a7a98;border-radius:6px;box-shadow:0 0 0 1px #000;padding:5px 9px;font-size:12px;line-height:1.5;white-space:nowrap}
+/* preview full raid */
+.pvbox{border:1px solid #6a5a2a;background:#1a1408cc;border-radius:4px;padding:8px 10px;margin-bottom:8px}
+.pvrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+button.pvbtn{font:14px Georgia,serif;padding:6px 16px;border-radius:5px;cursor:pointer;border:2px solid #b8a070;color:var(--gold);background:linear-gradient(#3a3a3a,#141414);text-shadow:1px 1px 0 #000;min-width:220px}
+button.pvbtn.on{background:linear-gradient(#2f7a1e,#123f0a);border-color:#ffd100;box-shadow:0 0 8px #ffd10088}
+button.pvbtn .st{display:inline-block;margin-left:8px;padding:0 6px;border-radius:3px;background:#000a;font-size:11px}
+.pvsz{display:inline-flex;gap:0}
+.pvsz button{font:11px Georgia,serif;background:#141414;color:#cfc7aa;border:1px solid #6a6a74;padding:2px 7px;cursor:pointer;margin-left:-1px}
+.pvsz button:first-child{border-radius:3px 0 0 3px;margin-left:0}.pvsz button:last-child{border-radius:0 3px 3px 0}
+.pvsz button.on{background:#5a4a10;color:var(--gold);border-color:#ffd100;position:relative;z-index:1}
+.pvsz button:disabled{opacity:.4;cursor:default}
+.pvnote{font-size:11px;color:#cfc7aa;line-height:1.5;margin-top:6px}
+.pvmsg{font-size:11px;color:#ffb070;margin-top:4px;min-height:0}
+.pvsim{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.pvsim button{font:11px Georgia,serif;background:#141414;color:#9fb7d8;border:1px solid #4a5a72;border-radius:3px;padding:2px 8px;cursor:pointer}
+.pvhead{display:flex;align-items:center;gap:8px;margin-bottom:6px;width:max-content;max-width:100%}
+.pvtag{font-size:11px;color:#fff;letter-spacing:.5px;text-shadow:1px 1px 0 #000,-1px -1px 0 #000;padding:2px 10px;border:1px solid #000;border-radius:2px;
+  background:repeating-linear-gradient(-45deg,#b8860b 0 7px,#2a1e04 7px 14px);box-shadow:0 0 0 1px #ffd10066}
+.pvph{border:1px dashed #6a6a74;border-radius:4px;color:#cfc7aa;font-size:13px;text-align:center;padding:34px 12px;background:#00000040}
+.pvph button{margin-top:8px}
+.scene.pv .c{cursor:not-allowed}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:60;background:#000000e0;border:1px solid #c86a5a;color:#ffb070;border-radius:4px;padding:5px 12px;font-size:12px;display:none}
+.api{font-size:12px;line-height:1.55}
+.api li{margin-bottom:3px}
+</style>
+</head>
+<body>
+<h1>Healer Forever: raid frames (future feature)</h1>
+<div class="sub">Compact layout for raids of up to 40 (8 groups of 5). Four options side by side with the same fake raid. Hover a frame for its tooltip, click a card to pick that style. With <b>Preview full raid</b> on (default here) the frames are a fake raid and clicks do nothing, exactly like in game; turn it off and pick "Raid" as group type to click-target real frames. <a href="index.html">Back to the main mockup</a> · <a href="raid-auras.html">Buffs and debuffs in the raid view</a> · <a href="raid-style-d.html">Chosen: style D with my buffs and dispels</a></div>
+
+<div class="note"><b>A separate "Raid" layout, with its own settings.</b> In game this is a second layout that turns on by itself when you join a raid, and switches back when you leave
+(in a 5-man party or solo you keep the party layout). <b>Switching:</b> "Layout: Auto" picks the party layout when solo or in a party, and the raid layout in a raid. Battlegrounds count as a raid. With "Raid layout only above 5 players" (on by default) a raid of 5 or fewer keeps the party look.
+If the group changes during a fight, the switch waits until combat ends (secure frames can't be rebuilt in combat); the bars you have keep working until then. Try it with the "preview only" group controls in the panel.
+The raid layout has <b>its own</b> bar size, names, health text, buffs and debuffs. Nothing on this page reads or changes your party settings, and the party look stays exactly as it is now (see the reference on the right).
+The defaults below are only a starting point: you pick the style and the defaults.<br>
+<b>Updating is safe.</b> Everything you already set up for the party layout in earlier versions stays exactly as it was. The raid layout gets its own separate saved settings with their own defaults: nothing is copied from the party settings and nothing is written over them.</div>
+
+<div class="top">
+  <div class="panel" id="panel">
+    <h3>Options &gt; Raid Layout</h3>
+    <div class="path">A new options tab. Every control maps 1:1 to a future addon option saved separately from the party layout. Changes update all four previews live. "Style default" means: use what that style card was designed with.</div>
+    <div class="pvbox">
+      <div class="pvrow">
+        <button class="pvbtn" id="pvBtn" type="button">Preview full raid<span class="st" id="pvSt">ON</span></button>
+        <span style="font-size:12px">Preview size</span>
+        <span class="pvsz" id="pvSzPanel"></span>
+      </div>
+      <div class="pvmsg" id="pvMsg"></div>
+      <div class="pvnote">Shows a <b>fake raid</b> at the real position of your raid frames (the saved raid anchor, drag it while bars are unlocked), with a striped <b>PREVIEW</b> tag on the raid header.
+        Every option on this tab updates it live, so you can try sizes, groups, buffs and debuffs before a real raid.
+        <b>Turns off by itself</b> when combat starts or when you join a real raid (your real raid frames take over).
+        Preview frames are <b>not clickable</b>: no targeting, no click-casts, no spells. Not saved: it is always off after <code>/reload</code>.</div>
+      <div class="pvsim"><span style="font-size:11px;color:#9fb7d8">Try it (mockup only):</span>
+        <button type="button" id="simCombat">Simulate: combat starts</button>
+        <button type="button" id="simRaid">Simulate: join a real raid</button></div>
+    </div>
+    <div class="pg">
+      <div class="h">Layout switching</div>
+      <div class="r prev"><label>Group type (preview only)</label><select data-k="gtype"><option value="solo">Solo</option><option value="party">Party</option><option value="raid">Raid</option><option value="bg">Battleground</option></select></div>
+      <div class="r prev" data-dep="players"><label>Players (preview only)</label><span class="rr"><input type="range" data-k="players" min="2" max="40"><span class="v" data-v="players"></span></span></div>
+      <div class="r" style="grid-column:1/-1"><span id="active" style="font-size:12px"></span></div>
+      <div class="h">General</div>
+      <div class="r"><label>Layout</label><select data-k="layout"><option value="auto">Auto (by group type)</option><option value="party">Always party</option><option value="raid">Always raid</option></select></div>
+      <div class="r" data-dep="auto"><label>Raid layout only above 5 players</label><input type="checkbox" data-k="over5"></div>
+      <div class="r"><label>Raid style</label><select data-k="style"><option value="A">A. Compact current</option><option value="B">B. Minimal</option><option value="C">C. Healer focus (corners)</option><option value="D">D. Hurt stands out</option></select></div>
+      <div class="r"><label>Scale</label><span class="rr"><input type="range" data-k="scale" min="50" max="150" step="5"><span class="v" data-v="scale">%</span></span></div>
+      <div class="r"><label>Use each style's own size</label><input type="checkbox" data-k="styleSize"></div>
+      <div class="r" data-dep="size"><label>Bar width</label><span class="rr"><input type="range" data-k="w" min="40" max="120"><span class="v" data-v="w">px</span></span></div>
+      <div class="r" data-dep="size"><label>Bar height</label><span class="rr"><input type="range" data-k="h" min="14" max="40"><span class="v" data-v="h">px</span></span></div>
+      <div class="r"><label>Spacing</label><span class="rr"><input type="range" data-k="sp" min="0" max="8"><span class="v" data-v="sp">px</span></span></div>
+
+      <div class="h">Groups</div>
+      <div class="r"><label>Group arrangement</label><select data-k="arr"><option value="col">Groups as columns</option><option value="row">Groups as rows</option></select></div>
+      <div class="r"><label>Groups per line</label><select data-k="wrap"><option value="8">8 (one line)</option><option value="4">4 (4 × 2 blocks)</option><option value="2">2 (2 × 4 blocks)</option><option value="1">1</option></select></div>
+      <div class="r"><label>Show group labels</label><input type="checkbox" data-k="labels"></div>
+      <div class="r"><label>Sort within group</label><select data-k="sort"><option value="none">None (join order)</option><option value="role">Role (tank, healer, damage)</option><option value="class">Class</option></select></div>
+      <div class="r"><label>Hide empty groups</label><input type="checkbox" data-k="hideEmpty"></div>
+
+      <div class="h">Bar</div>
+      <div class="r"><label>Show names</label><input type="checkbox" data-k="names"></div>
+      <div class="r"><label>Name length</label><span class="rr"><input type="range" data-k="nameLen" min="3" max="12"><span class="v" data-v="nameLen"> ch</span></span></div>
+      <div class="r"><label>Health text</label><select data-k="health"><option value="style">Style default</option><option value="none">None</option><option value="deficit">Deficit (−1.2k), only when hurt</option><option value="percent">Percent</option></select></div>
+      <div class="r"><label>Mana bar</label><select data-k="mana"><option value="style">Style default</option><option value="off">Off</option><option value="healers">Healers only</option><option value="all">Everyone</option></select></div>
+      <div class="r"><label>Mana bar height</label><span class="rr"><input type="range" data-k="manaH" min="1" max="5"><span class="v" data-v="manaH">px</span></span></div>
+      <div class="r"><label>Mute full-health bars</label><select data-k="mute"><option value="style">Style default</option><option value="on">On</option><option value="off">Off</option></select></div>
+      <div class="r"><label>Show incoming heals</label><input type="checkbox" data-k="incoming"></div>
+      <div class="r"><label>Show aggro border</label><input type="checkbox" data-k="aggro"></div>
+      <div class="r"><label>Mouse-over highlight</label><input type="checkbox" data-k="hover"></div>
+
+      <div class="h">Buffs and debuffs</div>
+      <div class="r"><label>Buffs</label><select data-k="buffs"><option value="style">Style default</option><option value="off">Off</option><option value="missing">Only missing my buff</option><option value="expiring">Missing + my buff ending (&lt; 60 s)</option><option value="hots">Missing + my HoTs</option></select></div>
+      <div class="r"><label>Buff marker</label><select data-k="bmark"><option value="style">Style default</option><option value="dot">Gold dot</option><option value="square">Corner square</option><option value="icon">Small icon</option></select></div>
+      <div class="r"><label>Debuffs</label><select data-k="debuffs"><option value="style">Style default</option><option value="off">Off</option><option value="mine">Only dispellable by me</option><option value="any">Any dispellable type</option></select></div>
+      <div class="r"><label>Debuff marker</label><select data-k="dmark"><option value="style">Style default</option><option value="border">Border only (dispel colour)</option><option value="icon1">Icons: 1</option><option value="icon2">Icons: up to 2</option><option value="square">Corner square</option></select></div>
+
+      <div class="h">Range</div>
+      <div class="r"><label>Out-of-range alpha</label><span class="rr"><input type="range" data-k="alpha" min="10" max="100" step="5"><span class="v" data-v="alpha">%</span></span></div>
+      <div class="r"><label>Out-of-range outline</label><input type="checkbox" data-k="oorOutline"></div>
+      <div class="r"><label></label><button class="b" id="reset">Reset raid defaults</button></div>
+    </div>
+  </div>
+
+  <div class="panel party" id="party">
+    <h3>Party layout: unchanged</h3>
+    <div class="pnote">The current 5-man look, for comparison. It keeps its own settings in Frames &amp; Bars and Buffs &amp; Debuffs. Used when you are solo or in a party; the raid layout never changes it.</div>
+    <div id="partyBars"></div>
+  </div>
+</div>
+
+<div class="legend" id="legend"></div>
+<div class="cards" id="cards"></div>
+
+<div class="panel" style="margin-top:12px">
+  <h3>WoW API notes and limits for raid frames</h3>
+  <ul class="api">
+    <li><b>Frames come from a secure group header.</b> <code>SecureGroupHeaderTemplate</code> (one header per group, or one with <code>groupBy="GROUP"</code>) creates the 40 unit buttons. Arrangement maps to header attributes:
+      <code>groupFilter</code>, <code>groupBy</code>/<code>groupingOrder</code>, <code>point</code>, <code>columnAnchorPoint</code>, <code>unitsPerColumn</code>, <code>maxColumns</code>, <code>xOffset</code>/<code>yOffset</code>/<code>columnSpacing</code>.
+      None of these can change in combat (size, spacing, sort, layout switch all wait for <code>PLAYER_REGEN_ENABLED</code>).</li>
+    <li><b>Sort by role</b> uses <code>groupBy="ASSIGNEDROLE"</code>, which reads <code>UnitGroupRolesAssigned</code>. In classic raids roles are often "NONE", and our own role detection can't feed the secure sort, so role sort may only work when roles are set. Class sort (<code>groupBy="CLASS"</code>) always works.</li>
+    <li><b>Auras are secret in combat.</b> Debuff icons must be drawn by the game's <code>AuraContainer</code> (<code>CustomAuraContainerTemplate</code>, filter <code>"HARMFUL|RAID"</code> = dispellable by me). "Icons: 1/2" fits that model. <b>"Border only" and "Corner square" need the debuff type in our code</b>, which may be unreadable in combat. Check on the real client before choosing them; the fallback is one icon.</li>
+    <li><b>Missing-buff markers</b> are computed out of combat only, like the party buff buttons today. In combat they keep the last known state. The dot is too small to be its own secure button, so you buff via a click-cast binding on the bar or the smart buff key.</li>
+    <li><b>Health can be secret.</b> The bar itself is fine (<code>StatusBar:SetValue</code> takes secrets). Percent text needs <code>UnitHealthPercent</code> and deficit text needs <code>UnitHealthMissing</code> (both newer API, written from memory, unverified on Forever). "Mute full-health bars" (style D) needs a colour curve from the same API; if it's missing, D falls back to normal colours.</li>
+    <li><b>Range</b>: <code>UnitInRange</code> works for raid units (about 40 yd) and can be secret, so dimming uses <code>Region:SetAlphaFromBoolean</code>. The "OUT OF RANGE" badge from the party look doesn't fit on 22–28 px bars, so raid frames use the dim + dashed outline part of style B only. No line of sight for friendly units. Not visible: <code>UnitIsVisible</code>.</li>
+    <li><b>Aggro</b>: <code>UnitThreatSituation(unit)</code> (can be secret; red border shown with <code>SetAlphaFromBoolean</code>). <b>Incoming heals</b>: <code>UnitGetIncomingHeals</code>. 40 frames × auras is the main performance cost; updates must be event-driven (<code>UNIT_AURA</code> with updateInfo, <code>UNIT_HEALTH</code>), never OnUpdate polling.</li>
+    <li><b>Preview full raid</b> uses plain (non-secure) <code>Frame</code>s with the same textures and FontStrings as the real buttons, filled with fake names/classes, never unit tokens, so it can't taint or cast.
+      They have no <code>SecureUnitButtonTemplate</code> and <code>EnableMouse</code> only for the tooltip, so clicks do nothing. Placed with the raid header's saved anchor.
+      Turned off on <code>PLAYER_REGEN_DISABLED</code> (combat) and on <code>GROUP_ROSTER_UPDATE</code> when <code>IsInRaid()</code> is true. Not saved in settings.
+      Striped tag: a 16×16 diagonal-stripe <code>.tga</code> shipped in the addon (<code>SetHorizTile(true)</code>); there is no built-in Blizzard stripe texture I can vouch for.</li>
+    <li><b>Names</b> can be secret, so "Name length" is applied as a FontString width (<code>SetWidth</code> + <code>SetWordWrap(false)</code>, which cuts the text), not with <code>string.sub</code>. The cut point is approximate.</li>
+  </ul>
+</div>
+
+<div class="tt" id="tt"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+const CC={Warrior:'#C69B6D',Paladin:'#F48CBA',Hunter:'#AAD372',Rogue:'#FFF468',Priest:'#FFFFFF',Shaman:'#0070DD',Mage:'#3FC7EB',Warlock:'#8788EE',Druid:'#FF7C0A'};
+const DT={Magic:'#3399ff',Curse:'#9900ff',Disease:'#996600',Poison:'#009900'};
+const DEBN={Magic:'Shadow Word: Pain',Curse:'Curse of Agony',Disease:'Brood Affliction',Poison:'Deadly Poison'};
+const MINE=['Magic','Poison','Disease']; // Paladin Cleanse
+const BLESS={Warrior:'Might',Rogue:'Might',Hunter:'Might',Paladin:'Wisdom',Priest:'Wisdom',Druid:'Wisdom',Mage:'Wisdom',Warlock:'Kings',Shaman:'Wisdom'};
+const ROLEO={T:0,H:1,D:2}, CLSO=['Warrior','Paladin','Druid','Priest','Shaman','Rogue','Hunter','Mage','Warlock'];
+const RN={T:'Tank',H:'Healer',D:'Damage'};
+// [name, class, role, hp%, extra]  extra: me, tgt, agg, inc(%), deb[], miss, exp, hot, st:'oor'|'hid', dead, ghost, off, max
+const RAW=[
+ ['Brakkor','Warrior','T',58,{agg:1,inc:22,max:8900,tgt:1}],
+ ['Ironhide','Warrior','T',86,{agg:1,max:8200,deb:['Magic']}],
+ ['Velanna','Priest','H',92,{max:3900,hot:1}],
+ ['Seraphine','Paladin','H',100,{max:4300,miss:1}],
+ ['Mossbeard','Druid','H',97,{max:4100}],
+ ['Aldric','Paladin','H',81,{me:1,max:4500}],
+ ['Grimtusk','Warrior','D',41,{max:5600,deb:['Disease'],inc:15}],
+ ['Kaelith','Rogue','D',100,{max:3700}],
+ ['Sylvara','Mage','D',100,{max:3300,deb:['Curse']}],
+ ['Duskwhisper','Warlock','D',72,{max:3800,exp:1}],
+ ['Orlenna','Priest','H',100,{max:3900}],
+ ['Fenwick','Mage','D',24,{max:3200,deb:['Magic','Poison']}],
+ ['Aurelle','Priest','H',88,{max:3900,exp:1}],
+ ['Nyssa','Hunter','D',100,{max:4000,st:'oor'}],
+ ['Halvard','Paladin','H',95,{max:4400,hot:1}],
+ ['Mirelle','Druid','H',100,{max:4000}],
+ ['Vexmora','Warlock','D',0,{max:3800,dead:1}],
+ ['Thessaly','Mage','D',63,{max:3300,miss:1}],
+ ['Corvane','Rogue','D',18,{max:3700,inc:35,deb:['Poison']}],
+ ['Bramwell','Priest','H',100,{max:3900,exp:1}],
+ ['Elowen','Hunter','D',77,{max:4000,st:'oor'}],
+ ['Garrick','Paladin','D',100,{max:4600}],
+ ['Ysolde','Mage','D',100,{max:3300,hot:1}],
+ ['Morgrave','Warlock','D',55,{max:3800}],
+ ['Tamsin','Rogue','D',100,{max:3700,miss:1}],
+ ['Quillon','Priest','H',100,{max:3900,st:'hid'}],
+ ['Darrow','Warrior','D',69,{max:5500,agg:1}],
+ ['Lirael','Druid','D',100,{max:4200}],
+ ['Astrid','Mage','D',90,{max:3300}],
+ ['Wexley','Hunter','D',0,{max:4000,ghost:1}],
+ ['Corwin','Warlock','D',100,{max:3800}],
+ ['Ondrea','Paladin','H',100,{max:4400}],
+ ['Pell','Rogue','D',31,{max:3700,deb:['Magic']}],
+ ['Isolde','Priest','H',100,{max:3900,off:1}],
+ ['Marrow','Mage','D',84,{max:3300}],
+ ['Fennick','Hunter','D',100,{max:4000}],
+ ['Rhiannon','Druid','D',66,{max:4100,hot:1}],
+ ['Saelis','Warlock','D',100,{max:3800}],
+ ['Brannoc','Warrior','D',0,{max:5500,st:'oor',dead:1}],
+ ['Ivra','Rogue','D',93,{max:3700}],
+];
+const R=RAW.map(([n,cls,role,hp,x],i)=>({i,n,cls,role,hp,g:Math.floor(i/5)+1,st:'in',deb:[],inc:0,...x}));
+let targetI=R.findIndex(m=>m.tgt);
+
+const STYLES={
+ A:{t:'A. Compact current',sub:'72 × 28',w:72,h:28,flat:false,
+    def:{health:'none',mana:'healers',buffs:'off',bmark:'icon',debuffs:'mine',dmark:'icon1',mute:'off'},
+    d:'The party look shrunk: glossy class bar with the grey bar border, short name, no HP number, 2 px mana bar for healers only, no buff icons. One small debuff icon (dispel-colour border) only when you can dispel it.',
+    cap:'Bar <code>Interface\\TargetingFrame\\UI-StatusBar</code>, border <code>Interface\\Buttons\\WHITE8X8</code> edgeSize 1 (the tooltip border is too thick at this size), debuff icon from the game AuraContainer with <code>Interface\\Buttons\\UI-Debuff-Overlays</code> border tinted by <code>DebuffTypeColor</code> (from memory).'},
+ B:{t:'B. Minimal',sub:'60 × 22',w:60,h:22,flat:true,
+    def:{health:'deficit',mana:'off',buffs:'missing',bmark:'dot',debuffs:'mine',dmark:'border',mute:'off'},
+    d:'Flat class-coloured bars with a 1 px black edge, name only, a red deficit (−1.8k) appears only when hurt. Dispellable debuff = coloured inner edge, missing blessing = tiny gold dot top-right.',
+    cap:'Bar and edges <code>Interface\\Buttons\\WHITE8X8</code> (vertex colour), inner dispel edge = 4 WHITE8X8 strips 2 px wide. Gold dot: <code>Interface\\COMMON\\Indicator-Yellow</code> (from memory) or a WHITE8X8 square. Deficit: <code>GameFontNormalSmall</code> outlined.'},
+ C:{t:'C. Healer focus (corners)',sub:'72 × 28',w:72,h:28,flat:false,
+    def:{health:'none',mana:'healers',buffs:'expiring',bmark:'square',debuffs:'mine',dmark:'square',mute:'off'},
+    d:'Like A, but everything is a Grid-style corner square: top-left gold = missing my blessing, orange = my blessing ending, green = HoT; bottom-right = dispellable debuff in its type colour (one square per type, max 2).',
+    cap:'Each square is a 6 px <code>Interface\\Buttons\\WHITE8X8</code> texture with a 1 px black backing, pre-created per button (4 per frame). Cheap to draw, readable at 50 % scale. Debuff squares need the aura type (see API notes).'},
+ D:{t:'D. Hurt stands out',sub:'64 × 24 (my idea)',w:64,h:24,flat:false,
+    def:{health:'deficit',mana:'off',buffs:'missing',bmark:'dot',debuffs:'mine',dmark:'icon1',mute:'on'},
+    d:'With 40 bright class colours the hurt ones get lost. Here bars at full health are muted (dark class tint), anyone hurt gets full colour plus the deficit, so your eye goes straight to who needs healing. Gold dot for missing blessing, one debuff icon.',
+    cap:'Same textures as A. Muting = <code>StatusBar:GetStatusBarTexture():SetVertexColor()</code> driven by a colour curve from health percent (<code>UnitHealthPercent</code> with a curve, newer API, unverified on Forever). Fallback: normal colours.'},
+};
+const PV_SIZES=[10,20,25,40];
+const DEF={preview:true,pvSize:40,layout:'auto',over5:true,gtype:'solo',players:40,style:'A',scale:100,styleSize:true,w:72,h:28,sp:2,arr:'col',wrap:'8',labels:true,sort:'none',hideEmpty:true,
+ names:true,nameLen:7,health:'style',mana:'style',manaH:2,mute:'style',incoming:true,aggro:true,hover:false,
+ buffs:'style',bmark:'style',debuffs:'style',dmark:'style',alpha:50,oorOutline:true};
+let O={...DEF};
+let pvWhy='';
+
+function eff(k){const S=STYLES[k];const E={...O};
+  for(const key of ['health','mana','buffs','bmark','debuffs','dmark','mute'])if(O[key]==='style')E[key]=S.def[key];
+  if(O.styleSize){E.w=S.w;E.h=S.h}
+  return E}
+const fmtK=v=>v>=1000?(v/1000).toFixed(1)+'k':String(v);
+
+function cell(m,k,E){
+  const S=STYLES[k],w=E.w,h=E.h,cc=CC[m.cls];
+  const down=m.dead||m.ghost||m.off, oor=m.st==='oor', hid=m.st==='hid';
+  const fs=Math.max(8,Math.min(12,Math.round(h*0.42)));
+  let wrap=`width:${w}px;height:${h}px;`, bx='', fill='', parts=[];
+  // frame / border
+  if(S.flat)bx+=`border:1px solid #000;background:#1c0909;`;
+  else bx+=`border:1px solid #8a8aa0;border-radius:2px;box-shadow:0 0 0 1px #000;background:#2a0d0d;`;
+  // dispellable debuffs
+  const debs=E.debuffs==='off'?[]:m.deb.filter(t=>E.debuffs==='any'||MINE.includes(t));
+  if(debs.length&&!down&&E.dmark==='border'){
+    const c=DT[debs[0]];
+    if(S.flat)bx+=`box-shadow:inset 0 0 0 2px ${c},inset 0 0 6px 2px ${c}aa;`;
+    else bx+=`border:2px solid ${c};box-shadow:0 0 0 1px #000;`;
+  }
+  // fill
+  let fc=cc;
+  const mute=E.mute==='on'&&m.hp>=95&&!down;
+  if(m.off)fc='#555';
+  if(mute)fc=`color-mix(in srgb,${cc} 38%,#2a2a2a)`;
+  const gloss=S.flat?'':'background-image:linear-gradient(rgba(255,255,255,.38),rgba(255,255,255,.04) 48%,rgba(0,0,0,.28));';
+  let ff=hid?'filter:grayscale(1) brightness(.6);':'';
+  const hpw=down?(m.off?100:0):m.hp;
+  parts.push(`<div class="fill" style="width:${hpw}%;background-color:${fc};${gloss}${ff}"></div>`);
+  if(E.incoming&&m.inc&&!down&&!hid)parts.push(`<div class="inc" style="left:${m.hp}%;width:${Math.min(m.inc,100-m.hp)}%"></div>`);
+  // mana
+  const showMana=E.mana==='all'||(E.mana==='healers'&&m.role==='H');
+  if(showMana&&!m.off){const pct=m.dead||m.ghost?0:[72,55,90,38,64][m.i%5];parts.push(`<div class="mana" style="height:${E.manaH+1}px"><i style="width:${pct}%"></i></div>`)}
+  // right-side reserved width for debuff icons
+  let iconsR=0;const isz=Math.max(8,Math.min(14,h-8));
+  if(debs.length&&!down&&(E.dmark==='icon1'||E.dmark==='icon2')){
+    const list=debs.slice(0,E.dmark==='icon1'?1:2);
+    list.forEach((t,j)=>parts.push(`<div class="mk ic" style="right:${2+j*(isz+1)}px;top:${(h-isz)/2-(showMana?1:0)}px;width:${isz}px;height:${isz}px;border:1px solid ${DT[t]};background:radial-gradient(circle at 40% 35%,${DT[t]},#111 80%)">${isz>=11?t[0]:''}</div>`));
+    iconsR=list.length*(isz+1)+2;
+  }
+  if(debs.length&&!down&&E.dmark==='square'){
+    debs.slice(0,2).forEach((t,j)=>parts.push(`<div class="mk sq" style="right:${1+j*7}px;bottom:${1+(showMana?E.manaH+1:0)}px;width:6px;height:6px;background:${DT[t]}"></div>`));
+  }
+  // buffs
+  const bl=[];
+  if(E.buffs!=='off'&&!down&&!hid){
+    if(m.miss)bl.push({c:'#ffd100',l:BLESS[m.cls][0]});
+    if(E.buffs==='expiring'&&m.exp)bl.push({c:'#ff8a1a',l:BLESS[m.cls][0]});
+    if(E.buffs==='hots'&&m.hot)bl.push({c:'#3cff5a',l:'R'});
+  }
+  bl.forEach((b,j)=>{
+    if(E.bmark==='dot')parts.push(`<div class="mk dot" style="right:${2+j*7}px;top:2px;width:6px;height:6px;background:radial-gradient(circle at 35% 30%,#fff,${b.c} 55%);box-shadow:0 0 3px ${b.c}"></div>`);
+    else if(E.bmark==='square')parts.push(`<div class="mk sq" style="left:${1+j*7}px;top:1px;width:6px;height:6px;background:${b.c}"></div>`);
+    else{const s=Math.max(8,Math.min(12,h-12));parts.push(`<div class="mk ic" style="right:${iconsR+2+j*(s+1)}px;top:1px;width:${s}px;height:${s}px;border:1px solid ${b.c};background:radial-gradient(circle at 40% 35%,#fff3b0,${b.c} 50%,#5a3a08)">${s>=10?b.l:''}</div>`)}
+  });
+  // texts
+  let tx='',txc='#fff';
+  if(m.dead){tx=oor?"CAN'T RES":'DEAD';txc='#e04040'}
+  else if(m.ghost){tx='GHOST';txc='#a8b8d0'}
+  else if(m.off){tx='OFFLINE';txc='#aaa'}
+  else if(hid){tx='?';txc='#8aa6c8'}
+  else if(E.health==='deficit'&&m.hp<100){tx='−'+fmtK(Math.round(m.max*(100-m.hp)/100));txc='#ff9090'}
+  else if(E.health==='percent'){tx=m.hp+'%'}
+  const tfs=down?Math.max(7,fs-2):fs;
+  if(tx)parts.push(`<div class="tx" style="font-size:${tfs}px;color:${txc};right:${3+iconsR}px">${tx}</div>`);
+  if(E.names){
+    const nm=m.n.length>E.nameLen?m.n.slice(0,E.nameLen):m.n;
+    const avail=w-6-iconsR-(tx?tx.length*tfs*0.55+3:0);
+    const nc=m.me?'#ffd100':(down||hid)?'#9a9a9a':'#fff';
+    parts.push(`<div class="nm" style="font-size:${fs}px;color:${nc};max-width:${Math.max(10,avail)}px">${nm}</div>`);
+  }
+  // range / visibility
+  let outer='';
+  if(oor){wrap+=`opacity:${O.alpha/100};`;if(O.oorOutline)outer=`outline:1px dashed var(--oor);outline-offset:1px;`}
+  if(hid){wrap+=`opacity:.75;`;outer=`outline:1px dotted var(--hid);outline-offset:1px;`}
+  const ov=[];
+  if(E.aggro&&m.agg&&!down)ov.push('<div class="agg"></div>');
+  if(m.i===targetI)ov.push('<div class="tgt"></div>');
+  return `<div class="c" data-i="${m.i}" style="${wrap}${outer}"><div class="bx" style="${bx}">${parts.join('')}</div>${ov.join('')}</div>`;
+}
+
+function members(){
+  const n=O.preview?O.pvSize:O.gtype==='raid'||O.gtype==='bg'?O.players:O.gtype==='party'?5:1;let list=R.filter(m=>m.i<n);
+  return g=>{let gm=list.filter(m=>m.g===g);
+    if(O.sort==='role')gm=[...gm].sort((a,b)=>ROLEO[a.role]-ROLEO[b.role]||a.i-b.i);
+    if(O.sort==='class')gm=[...gm].sort((a,b)=>CLSO.indexOf(a.cls)-CLSO.indexOf(b.cls)||a.i-b.i);
+    return gm}
+}
+function grid(k){
+  const E=eff(k),get=members(),sp=O.sp,gg=sp+6,wrapN=+O.wrap,col=O.arr==='col';
+  const blocks=[];
+  for(let g=1;g<=8;g++){
+    const gm=get(g);
+    if(!gm.length&&O.hideEmpty)continue;
+    const lab=O.labels?`<div class="gl">G${g}</div>`:'';
+    const inner=gm.length?gm.map(m=>cell(m,k,E)).join(''):
+      `<div class="empty" style="width:${col?E.w:E.w*5+sp*4}px;height:${col?E.h*5+sp*4:E.h}px">empty</div>`;
+    blocks.push(`<div class="grp ${col?'col':'row'}"${col?'':' style="gap:2px"'}>${lab}<div class="cells" style="gap:${sp}px">${inner}</div></div>`);
+  }
+  const tpl=col?`grid-template-columns:repeat(${Math.min(wrapN,blocks.length||1)},auto)`:`grid-auto-flow:column;grid-template-rows:repeat(${Math.min(wrapN,blocks.length||1)},auto)`;
+  return `<div class="raid" style="${tpl};gap:${gg}px;zoom:${O.scale/100}">${blocks.join('')}</div>`;
+}
+function groupSize(){return O.gtype==='solo'?1:O.gtype==='party'?5:O.players}
+function inRealRaid(){return O.gtype==='raid'||O.gtype==='bg'}
+function raidActive(){
+  if(O.preview)return true;
+  if(O.layout==='party')return false; if(O.layout==='raid')return true;
+  if(O.gtype==='solo'||O.gtype==='party')return false;
+  return !(O.over5&&O.players<=5);
+}
+function activeInfo(){
+  if(O.preview){document.getElementById('active').innerHTML=`Showing: <b style="color:#ffd100">Preview of a ${O.pvSize}-player raid (style ${O.style})</b> <span style="color:#9a927e">· fake players, your real frames are unchanged</span>`;
+    const pp=document.getElementById('party');pp.style.borderColor='';pp.style.boxShadow='';return}
+  const on=raidActive(),gs=groupSize();
+  const why=O.layout!=='auto'?`Layout is set to "Always ${O.layout}".`:
+    O.gtype==='solo'?'Solo: party layout.':O.gtype==='party'?'Party: party layout.':
+    (O.over5&&O.players<=5)?`${O.gtype==='bg'?'Battleground':'Raid'} of ${gs}: 5 or fewer players, so the party look stays.`:
+    `${O.gtype==='bg'?'Battleground (counts as a raid)':'Raid'} of ${gs} players.`;
+  document.getElementById('active').innerHTML=`Active layout now: <b style="color:${on?'#ffd100':'#7dff9b'}">${on?'Raid (style '+O.style+')':'Party (unchanged look)'}</b> <span style="color:#9a927e">· ${why}</span>`;
+  const pp=document.getElementById('party');pp.style.borderColor=on?'':'#ffd100';pp.style.boxShadow=on?'':'0 0 8px #ffd10066';
+}
+function szBtns(){return PV_SIZES.map(n=>`<button type="button" data-pv="${n}" class="${O.pvSize===n?'on':''}"${O.preview?'':' disabled'}>${n}</button>`).join('')}
+function pvUI(){
+  const b=document.getElementById('pvBtn');b.classList.toggle('on',O.preview);
+  document.getElementById('pvSt').textContent=O.preview?'ON':'OFF';
+  document.getElementById('pvSzPanel').innerHTML=szBtns();
+  document.getElementById('pvMsg').textContent=pvWhy;
+}
+function scene(k){
+  if(O.preview)return `<div class="scene pv"><div class="pvhead"><span class="pvtag">PREVIEW — not real players</span><span class="pvsz">${szBtns()}</span><span style="font-size:10px;color:#9a927e">players</span></div>${grid(k)}</div>`;
+  if(inRealRaid()&&raidActive())return `<div class="scene"><div style="font-size:11px;color:#7dff9b;margin-bottom:6px">Your real raid (${groupSize()} players). Click a frame to target it.</div>${grid(k)}</div>`;
+  return `<div class="scene"><div class="pvph">Turn on <b style="color:#ffd100">Preview full raid</b> to see your options.<br><button class="b" type="button" data-pvon="1">Preview full raid</button></div></div>`;
+}
+function draw(){
+  activeInfo();pvUI();
+  document.getElementById('cards').innerHTML=Object.entries(STYLES).map(([k,S])=>{
+    const E=eff(k);
+    return `<div class="card ${O.style===k?'sel':''}" data-style="${k}"><h2>${S.t}<small>${E.w} × ${E.h} px${O.style===k?' · selected':''}</small></h2><div class="desc">${S.d}</div>
+      ${scene(k)}
+      <div class="cap"><b>Implementation:</b> ${S.cap}</div></div>`}).join('');
+}
+function legend(){
+  const L=[['#ffffff','border:2px solid #fff;background:none','Target'],['','border:1px solid #ff2020;box-shadow:0 0 3px #ff2020;background:none','Aggro'],
+   ['','background:#7dff9b70','Incoming heal'],['','outline:1px dashed #9a9a9a;background:#F48CBA80','Out of range (dimmed)'],
+   ['','outline:1px dotted #6a86a8;background:#555','Not visible ("?")'],['','background:#1c0909;border:1px solid #e04040','Dead / Ghost / Offline'],
+   ['','background:#ffd100;border-radius:50%;width:8px;height:8px','Missing my blessing'],['','background:#ff8a1a','Blessing ending'],['','background:#3cff5a','My HoT'],
+   ...Object.entries(DT).map(([t,c])=>['',`background:${c}`,t+(MINE.includes(t)?' (I can dispel)':' (not by Paladin)')]),
+   ['','background:none;color:#ffd100;width:auto;font-size:11px','Gold name = you']];
+  document.getElementById('legend').innerHTML=L.map(([,s,t])=>`<span><b style="${s}"></b>${t}</span>`).join('');
+}
+function party(){
+  const P=[{n:'Aldric (you)',cls:'Paladin',hp:81,v:3645,pw:72,b:3},{n:'Brakkor',cls:'Warrior',hp:58,v:5162,pw:30,b:4,gold:1,deb:['Magic']},
+   {n:'Velanna',cls:'Priest',hp:92,v:3588,pw:55,b:3},{n:'Fenwick',cls:'Mage',hp:24,v:768,pw:64,b:2,deb:['Magic','Poison']},{n:'Nyssa',cls:'Hunter',hp:100,v:4000,pw:80,b:3,oor:1}];
+  document.getElementById('partyBars').innerHTML=P.map(m=>`<div class="pbar" style="${m.oor?'opacity:.72':''}">
+    <div class="pbuf">${Array.from({length:m.b},(_,j)=>`<i style="background:radial-gradient(circle at 40% 35%,${['#f8e08a','#9ad0ff','#c9a0ff','#9aff9a'][j]},#222 85%)"></i>`).join('')}</div>
+    <div class="php" style="${m.oor?'border-style:dashed;border-color:#8a8a8a':''}"><div class="f" style="width:${m.hp}%;background-color:${CC[m.cls]}"></div>
+      <span style="left:5px">${m.n}</span><span style="right:5px">${m.v}</span>${m.gold?'<div class="pgold"></div>':''}${m.oor?'<div class="pbadge">OUT OF RANGE</div>':''}</div>
+    <div class="ppw"><i style="width:${m.pw}%;background:${m.cls==='Warrior'?'#ff0000':'#0000ff'}"></i></div>
+    <div class="pdeb">${(m.deb||[]).map(t=>`<i style="border-color:${DT[t]};background:radial-gradient(circle,${DT[t]},#111 85%)"></i>`).join('')}</div></div>`).join('')+
+    `<div class="pnote" style="margin-top:6px">Party: 220 px bars, HP number, mana bar, all buffs above, debuffs below, gold buff button, OUT OF RANGE badge.</div>`;
+}
+
+// panel wiring
+const PN=document.getElementById('panel');
+function sync(){
+  PN.querySelectorAll('[data-k]').forEach(el=>{const v=O[el.dataset.k];if(el.type==='checkbox')el.checked=v;else el.value=v});
+  PN.querySelectorAll('[data-v]').forEach(el=>{const u=el.textContent.replace(/^[\d.\s-]+/,'')||'';el.textContent=O[el.dataset.v]+(el.dataset.u??(el.dataset.u=u))});
+  PN.querySelectorAll('[data-dep=size]').forEach(el=>el.classList.toggle('dis',O.styleSize));
+  PN.querySelectorAll('[data-dep=size] input').forEach(el=>el.disabled=O.styleSize);
+  PN.querySelectorAll('[data-dep=auto]').forEach(el=>el.classList.toggle('dis',O.layout!=='auto'));
+  PN.querySelectorAll('[data-dep=players]').forEach(el=>el.classList.toggle('dis',O.gtype==='solo'||O.gtype==='party'));
+}
+PN.addEventListener('input',e=>{const k=e.target.dataset.k;if(!k)return;
+  O[k]=e.target.type==='checkbox'?e.target.checked:e.target.type==='range'?+e.target.value:e.target.value;
+  if(k==='style'&&O.styleSize){O.w=STYLES[O.style].w;O.h=STYLES[O.style].h}
+  if(k==='gtype'&&inRealRaid()&&O.preview){O.preview=false;pvWhy='Preview turned off: you joined a real raid. Your real raid frames show now.'}
+  sync();draw()});
+let toastT=0;function toast(t){const el=document.getElementById('toast');el.textContent=t;el.style.display='block';clearTimeout(toastT);toastT=setTimeout(()=>el.style.display='none',2200)}
+function setPreview(on,why){O.preview=on;pvWhy=why||'';sync();draw()}
+document.getElementById('pvBtn').addEventListener('click',()=>{
+  if(!O.preview&&inRealRaid()){pvWhy="Can't preview while you are in a real raid: your real raid frames are already showing.";draw();return}
+  setPreview(!O.preview)});
+document.getElementById('simCombat').addEventListener('click',()=>{if(O.preview)setPreview(false,'Preview turned off: combat started.');else toast('Combat started (preview was already off).')});
+document.getElementById('simRaid').addEventListener('click',()=>{O.gtype='raid';O.players=Math.max(O.players,10);
+  if(O.preview)setPreview(false,'Preview turned off: you joined a real raid. Your real raid frames show now.');else{sync();draw()}});
+document.addEventListener('click',e=>{const el=e.target instanceof Element?e.target:null;if(!el)return;
+  const sz=el.closest('[data-pv]');if(sz){e.stopPropagation();O.pvSize=+sz.dataset.pv;sync();draw();return}
+  const on=el.closest('[data-pvon]');if(on){e.stopPropagation();if(inRealRaid()){pvWhy="Can't preview while you are in a real raid.";draw()}else setPreview(true)}
+},true);
+document.getElementById('reset').addEventListener('click',()=>{O={...DEF};pvWhy='';targetI=R.findIndex(m=>m.tgt);sync();draw()});
+document.getElementById('cards').addEventListener('click',e=>{
+  const c=e.target.closest('.c');
+  if(c){if(O.preview){toast('Preview frames are not clickable: no target, no casts.');return}targetI=+c.dataset.i;draw();return}
+  const card=e.target.closest('.card');if(card){O.style=card.dataset.style;if(O.styleSize){O.w=STYLES[O.style].w;O.h=STYLES[O.style].h}sync();draw()}
+});
+// hover + tooltip
+const tt=document.getElementById('tt');let hl=null;
+document.addEventListener('mousemove',e=>{
+  const el=e.target instanceof Element?e.target:null;const c=el&&el.closest('.c');
+  if(hl&&hl!==c){hl.classList.remove('hl');hl=null}
+  if(!c){tt.style.display='none';return}
+  if(O.hover){c.classList.add('hl');hl=c}
+  const m=R[+c.dataset.i];
+  const st=m.dead?(m.st==='oor'?'<span style="color:#e04040">Dead</span> <span style="color:#ffb070">(out of range, can\'t resurrect)</span>':'<span style="color:#e04040">Dead</span> <span style="color:#ffb070">(click to resurrect)</span>')
+   :m.ghost?'<span style="color:#a8b8d0">Ghost (released)</span>':m.off?'<span style="color:#aaa">Offline</span>'
+   :m.st==='hid'?'<span style="color:#6a86a8">Not visible</span> <span style="color:#9a927e">(too far or another phase)</span>'
+   :m.st==='oor'?'<span style="color:#c86a5a">Out of range</span> (can\'t heal)':'<span style="color:#4cff6a">In range</span>';
+  const hp=m.dead||m.ghost||m.off?'':m.st==='hid'?'Health: unknown':`Health: ${Math.round(m.max*m.hp/100)} / ${m.max}${m.inc?` <span style="color:#7dff9b">(+${Math.round(m.max*m.inc/100)} incoming)</span>`:''}`;
+  const debs=m.deb.map(t=>`<div><span style="color:${DT[t]}">${DEBN[t]}</span> <span style="color:#9a927e">${t}${MINE.includes(t)?'':', you can\'t dispel'} · ${8+t.length}s</span></div>`).join('');
+  tt.innerHTML=`<div style="color:${CC[m.cls]};font-size:13px">${m.n}${m.me?' (you)':''}</div><div style="color:#ccc">${m.cls} · ${RN[m.role]} · Group ${m.g}</div>${hp?`<div>${hp}</div>`:''}<div>${st}</div>${m.agg?'<div style="color:#ff5050">Has aggro</div>':''}${m.miss?`<div style="color:#ffd100">Missing: Blessing of ${BLESS[m.cls]}</div>`:''}${m.exp?`<div style="color:#ff8a1a">Blessing of ${BLESS[m.cls]} ends in 42s</div>`:''}${debs}${m.i===targetI?'<div style="color:#fff">Your target</div>':''}${O.preview?'<div style="color:#ffb070">Preview: fake player, clicks do nothing</div>':''}`;
+  tt.style.display='block';tt.style.left=Math.min(e.clientX+14,innerWidth-320)+'px';tt.style.top=Math.min(e.clientY+14,innerHeight-tt.offsetHeight-6)+'px';
+});
+try{localStorage.removeItem('hf-raid-frames')}catch(_){}
+sync();legend();party();draw();
+</script>
+</body>
+</html>

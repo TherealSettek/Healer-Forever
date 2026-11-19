@@ -2,7 +2,10 @@
 ..\..\..\..\WoW\Data\Interface\AddOns\Blizzard_SharedXML\UI.xsd">
 
 	<ScopedModifier useForbiddenObjectTable="true">
-		<AuraButton name="HealerForeverAuraButtonTemplate" inherits="CustomAuraButtonTemplate" virtual="true">
+		<!-- Mouse defaults apply at creation (no protected call): the game also creates these buttons in combat, before
+		     Auras.lua may change the mouse setup. Clicks off so a click always reaches the unit button underneath;
+		     motion on for the aura tooltip. -->
+		<AuraButton name="HealerForeverAuraButtonTemplate" inherits="CustomAuraButtonTemplate" virtual="true" enableMouseClicks="false" enableMouseMotion="true">
 			<Size x="16" y="16"/>
 			<Layers>
 				<Layer level="BACKGROUND">
@@ -43,6 +46,18 @@
 					</Anchors>
 				</Cooldown>
 			</Frames>
+		</AuraButton>
+
+		<!-- Raid debuff icons (Frames/RaidFrames.lua): same parts as above, but no mouse at all from creation on. The
+		     game creates them lazily, also mid-fight, when the mouse setters are blocked; the raid bar underneath keeps
+		     hover and clicks. The party template above is unchanged. -->
+		<AuraButton name="HealerForeverRaidAuraButtonTemplate" inherits="HealerForeverAuraButtonTemplate" virtual="true" enableMouseClicks="false" enableMouseMotion="false"/>
+
+		<!-- Raid bar glow carrier: one per raid bar (its own container, max 1 button). No visible parts of its own: the
+		     game shows / hides it with the first dispellable debuff and tints the glow texture the addon hands it
+		     (AddDispelTypeTexture, inside a plain holder frame). No mouse. -->
+		<AuraButton name="HealerForeverRaidGlowButtonTemplate" inherits="CustomAuraButtonTemplate" virtual="true" enableMouseClicks="false" enableMouseMotion="false">
+			<Size x="1" y="1"/>
 		</AuraButton>
 	</ScopedModifier>
 </Ui>

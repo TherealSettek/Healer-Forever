@@ -12,7 +12,7 @@ There is **no GitHub release workflow**. The owner is on the free plan and chose
 3. **Settings schema:** if saved data changed shape, check that `ns.migrations` has a step, `DEFAULTS.version` was bumped, and there's an old-format
    fixture test (see `.claude/docs/settings.md`).
 4. **Full local test run, with the mutation tests:** `./run-tests.sh` must be green with lint clean. CI skips the mutation tests, so this run is the only time they're checked.
-5. **Build the zip:** `./scripts/release.sh <version>`. This produces `dist/HealerForever-v<version>.zip`. Check that it has `HealerForever/` at its root,
+5. **Build the zip:** `./scripts/release.sh <version>` (it does not run the tests; when step 4 just passed on the same code, this is enough). `./scripts/release-tests.sh <version>` does steps 4 and 5 in one go. This produces `dist/HealerForever-v<version>.zip`. Check that it has `HealerForever/` at its root,
    the TOC says `## Version: <version>`, and it contains no tests, mockup, `.settings-backup`, dotfiles or `.DS_Store`. Optionally install it and smoke-test in WoW.
 6. **CurseForge, done by the owner by hand.** In the author console, upload the zip as a new file:
    - Game version: **WoW Forever (1.60.1)**. The TOC's `## Interface: 16001` matches it.
@@ -22,7 +22,7 @@ There is **no GitHub release workflow**. The owner is on the free plan and chose
 7. **Git** (only with the owner's OK): commit on a branch, merge to `main`, push, then `git tag v<version> && git push origin v<version>`.
    Commit messages end with the session's attribution lines.
 
-Never include `.settings-backup/` or `dist/` in commits. Never use `HF_RELEASE_SKIP_TESTS=1` for a real release.
+Never include `.settings-backup/` or `dist/` in commits. Never build a real release from code that hasn't passed the full suite: if anything in `HealerForever/` changed after the last green run, use `release-tests.sh`.
 
 Possible later step: automated CurseForge uploads via BigWigsMods/packager in GitHub Actions with a `CF_API_KEY` secret and `## X-Curse-Project-ID`
 in the TOC. Only add this if the owner asks, because it uses Actions minutes.

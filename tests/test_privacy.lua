@@ -38,6 +38,48 @@ describe("privacy: no real character or account identifiers in published files",
             assertTrue(L.exists(HF_TESTS .. "/fixtures/" .. f), f)
         end
     end)
+    it("synthetic fixtures are made up: marked SYNTHETIC, no error log, no preset names copied from the owner's fixtures", function()
+        local SYNTHETIC = { "settings-v0.10.1.lua" }
+        local GENERATED = { "party-golden-0.10.1.lua" }
+        local ownerNames = {}
+        for _, f in ipairs({ "owner-char-v3.lua", "owner-char-pre-buffgroups.lua", "owner-account-v2.lua" }) do
+            local src = L.readFile(HF_TESTS .. "/fixtures/" .. f)
+            for name in src:gmatch('%["name"%] = "([^"]+)"') do ownerNames[name] = true end
+        end
+        for _, f in ipairs(SYNTHETIC) do
+            local path = HF_TESTS .. "/fixtures/" .. f
+            assertTrue(L.exists(path), f)
+            local src = L.readFile(path)
+            assertTrue(src:find("SYNTHETIC", 1, true) ~= nil, f .. " must say it is synthetic")
+            assertNil(src:find("migratedFrom", 1, true), f .. " looks like a real save (migratedFrom)")
+            assertNil(src:find('%["errorLog"%] = {%s*{'), f .. " carries error log entries")
+            for name in src:gmatch('%["name"%] = "([^"]+)"') do
+                assertNil(ownerNames[name], f .. " reuses the owner's preset name '" .. name .. "'")
+            end
+        end
+        for _, f in ipairs(GENERATED) do assertTrue(L.exists(HF_TESTS .. "/fixtures/" .. f), f) end
+    end)
+    it("the raid preview's fake names (RP.NAMES) are made up: no marker, no name from the owner's fixtures, never UnitName", function()
+        local src = L.readFile(L.path("Frames/RaidPreview.lua"))
+        local block = assert(src:match("RP%.NAMES = (%b{})"), "RP.NAMES table not found")
+        local names = {}
+        for n in block:gmatch('"([^"]+)"') do names[#names + 1] = n end
+        assertEquals(#names, 40, "one made-up name per preview slot")
+        local owner = ""
+        for _, f in ipairs({ "owner-char-v3.lua", "owner-char-pre-buffgroups.lua", "owner-account-v2.lua" }) do
+            owner = owner .. L.readFile(HF_TESTS .. "/fixtures/" .. f)
+        end
+        local seen = {}
+        for _, n in ipairs(names) do
+            assertNil(seen[n], "duplicate preview name " .. n); seen[n] = true
+            for _, m in ipairs(MARKERS) do assertNil(n:find(m, 1, true), n) end
+            if n ~= "You" then assertNil(owner:find('"' .. n, 1, true), "preview name " .. n .. " appears in the owner's saved data") end
+        end
+        local code = src:gsub("%-%-[^\n]*", "")
+        assertNil(code:find("UnitName", 1, true), "the preview never reads a real player name")
+        assertNil(code:find("UnitFullName", 1, true))
+        assertNil(code:find("GetRaidRosterInfo", 1, true))
+    end)
     it("no absolute path into the owner's game folder is baked into a test or the addon", function()
         for _, rel in ipairs(listFiles()) do
             if rel:find("^tests/") or rel:find("^HealerForever/") then

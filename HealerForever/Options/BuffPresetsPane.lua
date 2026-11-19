@@ -133,7 +133,11 @@ local function popupHeader(i)
     return h
 end
 
--- ctx = { class = caster class token, get = fn -> array of keys, toggle = fn(key, on), clear = fn(groupId) }
+-- ctx = { class = caster class token, get = fn -> array of keys, toggle = fn(key, on), clear = fn(groupId),
+--         noneLabel = text for a multi group's "None" row, inherit = fn -> true while a role row follows the class row,
+--         reset = fn() that makes a role row follow the class row again }
+-- Role rows: the "None" slot of each multi group reads "Use class row" (checked while inheriting, and the group's
+-- buffs then show unchecked). A catalog without a multi group gets one "Use class row" row on top instead.
 local function renderPopup(ctx)
     local set = {}
     for _, key in ipairs(ctx.get()) do set[key] = true end
@@ -147,7 +151,32 @@ local function renderPopup(ctx)
     else
         popup.note:Hide()
     end
-    for _, group in ipairs(Classes.BuffCatalog(ctx.class)) do
+    local inheriting = ctx.inherit and ctx.inherit() and true or false
+    local catalog = Classes.BuffCatalog(ctx.class)
+    local hasMulti = false
+    for _, group in ipairs(catalog) do
+        if group.multi then hasMulti = true end
+    end
+    if ctx.reset and not hasMulti then
+        nRows = nRows + 1
+        local row = popupRow(nRows)
+        row:ClearAllPoints()
+        row:SetPoint("TOPLEFT", 6, y)
+        row:SetPoint("TOPRIGHT", -6, y)
+        row.icon:Hide()
+        row.text:ClearAllPoints()
+        row.text:SetPoint("LEFT", row.box, "RIGHT", 8, 0)
+        row.text:SetText(ctx.noneLabel or "Use class row")
+        row.text:SetTextColor(1, 1, 1)
+        row.check:SetShown(inheriting)
+        row:SetScript("OnClick", function()
+            ctx.reset()
+            renderPopup(ctx)
+        end)
+        row:Show()
+        y = y - 24
+    end
+    for _, group in ipairs(catalog) do
         nHeaders = nHeaders + 1
         local h = popupHeader(nHeaders)
         h:ClearAllPoints()
@@ -187,9 +216,18 @@ local function renderPopup(ctx)
             for _, key in ipairs(group.buffs) do
                 if set[key] then any = true end
             end
-            addRow(ctx.noneLabel or "None", nil, not any, function() ctx.clear(group.id) end)
-            for _, key in ipairs(group.buffs) do
-                addRow(Classes.BUFFS[key].name, key, set[key], function() ctx.toggle(key, true) end)
+            if ctx.reset then
+                -- role row: the first option follows the class row (checked while inheriting)
+                addRow(ctx.noneLabel or "Use class row", nil, inheriting, function() ctx.reset() end)
+                for _, key in ipairs(group.buffs) do
+                    addRow(Classes.BUFFS[key].name, key, not inheriting and set[key],
+                        function() ctx.toggle(key, true) end)
+                end
+            else
+                addRow(ctx.noneLabel or "None", nil, not any, function() ctx.clear(group.id) end)
+                for _, key in ipairs(group.buffs) do
+                    addRow(Classes.BUFFS[key].name, key, set[key], function() ctx.toggle(key, true) end)
+                end
             end
         else
             for _, key in ipairs(group.buffs) do
@@ -221,7 +259,7 @@ Options:RegisterPane("buffs", "Buff Presets", 2, function(pane)
     root:SetSize(540, 1100)
     pageScroll:SetScrollChild(root)
     UI.Header(root, "Buff Presets",
-        "Pick which of YOUR buffs each class and role should get. One buff per group; different groups stack. A role shows '= default' until overridden.")
+        "Pick which of YOUR buffs each class and role gets. One per group; groups stack. Role rows follow the class row unless you pick buffs; 'Use class row' resets them.")
     local classLabel = UI.Label(root, "", "GameFontNormal")
     classLabel:SetPoint("TOPLEFT", 330, -56)
 
@@ -406,8 +444,12 @@ Options:RegisterPane("buffs", "Buff Presets", 2, function(pane)
             row.cell:SetPoint("TOPLEFT", CELL_X, y)
             row.cell:SetScript("OnClick", function(self)
                 local preset = ns.db.presets[edit]
+                local isRole = role ~= "DEFAULT"
                 showPopup(self, {
                     class = ns.PlayerClass(),
+                    noneLabel = isRole and "Use class row" or nil,
+                    inherit = isRole and function() return Presets.RoleInherits(preset, class, role) end or nil,
+                    reset = isRole and function() Presets.ResetRole(preset, class, role); ns:Changed("presets") end or nil,
                     get = function() return Presets.CellBuffs(preset, class, role, false) end,
                     toggle = function(key, on) Presets.SetCellBuff(preset, class, role, key, on); ns:Changed("presets") end,
                     clear = function(groupId) Presets.ClearGroup(preset, class, role, groupId); ns:Changed("presets") end,
@@ -570,10 +612,8 @@ Options:RegisterPane("buffs", "Buff Presets", 2, function(pane)
                 setCellKeys(selfCell, preset.self, "none")
             end
             for _, row in ipairs(rows) do
-                local entry = preset.map[row.class] or {}
-                local own = entry[row.role]
                 setCellKeys(row.cell, Presets.CellBuffs(preset, row.class, row.role, false))
-                if row.note then row.note:SetShown(own == nil) end
+                if row.note then row.note:SetShown(Presets.RoleInherits(preset, row.class, row.role)) end
             end
         end
         for _, r in ipairs(groupRows) do

@@ -9,6 +9,7 @@
 ## IconTexture: Interface\Icons\Spell_Holy_FlashHeal
 
 Util\Util.lua
+Util\RaidLayout.lua
 Data\Classes.lua
 Buffs\Presets.lua
 ClickCast\Bindings.lua
@@ -19,17 +20,22 @@ Data\Spells.lua
 Frames\Auras.xml
 Frames\Auras.lua
 Frames\UnitFrames.lua
+Frames\RaidStyle.lua
+Frames\RaidFrames.lua
+Frames\RaidPreview.lua
 ClickCast\ClickCast.lua
 Buffs\BuffButtons.lua
 Options\Widgets.lua
 Options\Window.lua
 Options\Panes.lua
+Options\RaidPane.lua
 Options\MinimapPane.lua
 Options\BuffPresetsPane.lua
 Options\SpellsPane.lua
 Options\BindingsPane.lua
 Options\CopyWindow.lua
 Options\Report.lua
+Options\Perf.lua
 Options\ContactPane.lua
 Options\Slash.lua
 Minimap\MinimapButton.lua

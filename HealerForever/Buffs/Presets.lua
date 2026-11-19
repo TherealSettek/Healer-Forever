@@ -7,8 +7,10 @@ local Presets = ns.Presets
 --   { name = "...", self = nil | { buffKey, ... },
 --     map = { PALADIN = { DEFAULT = { "wisdom" }, TANK = { "might" }, ... }, PRIEST = { DEFAULT = { "fortitude", "spirit" } } },
 --     extras = { ... } }
--- A cell is a SET of buff keys, at most one per catalog group (see Classes.BUFF_CATALOG). An empty set means "no
--- buff"; a missing role entry falls back to DEFAULT. Older saves held a single key string (or "none") per cell.
+-- A cell is a SET of buff keys, at most one per catalog group (see Classes.BUFF_CATALOG). An empty DEFAULT (class
+-- row) or self set means "no buff". A ROLE entry is an override only when non-empty: an empty or missing role entry
+-- falls back to DEFAULT ("follow the class row"); editors store nil instead of an empty role set.
+-- Older saves held a single key string (or "none") per cell.
 
 local FALLBACK_ROLES = {
     WARRIOR = { "TANK", "DAMAGER" }, PALADIN = { "TANK", "HEALER", "DAMAGER" }, HUNTER = { "DAMAGER" },
@@ -128,10 +130,20 @@ function Presets.CellBuffs(preset, classToken, role, isSelf)
     local entry = type(preset.map) == "table" and preset.map[classToken]
     if type(entry) == "string" then return ordered(toSet(entry) or {}) end
     if type(entry) ~= "table" then return {} end
-    if role and role ~= "DEFAULT" and isValidRole(classToken, role) and entry[role] ~= nil then
-        return ordered(toSet(entry[role]) or {})
+    if role and role ~= "DEFAULT" and isValidRole(classToken, role) then
+        local own = toSet(entry[role])
+        if own and own[1] ~= nil then return ordered(own) end
     end
     return ordered(toSet(entry.DEFAULT) or {})
+end
+
+-- True when a role row follows the class row (its own set is missing or empty). DEFAULT is never "inheriting".
+function Presets.RoleInherits(preset, classToken, role)
+    if role == nil or role == "DEFAULT" then return false end
+    local entry = type(preset) == "table" and type(preset.map) == "table" and preset.map[classToken]
+    if type(entry) ~= "table" then return true end
+    local own = toSet(entry[role])
+    return not (own and own[1] ~= nil)
 end
 
 -- First buff of the cell, or nil (kept for callers that handle a single buff).
@@ -218,9 +230,12 @@ local function convertPreset(p)
         if type(entry) == "string" then
             p.map[class] = { DEFAULT = toSet(entry) }
         elseif type(entry) == "table" then
-            for role, value in pairs(entry) do
-                local set = toSet(value)
-                if set then entry[role] = ordered(set) else entry[role] = nil end
+            local roles = {}
+            for role in pairs(entry) do roles[#roles + 1] = role end
+            for _, role in ipairs(roles) do
+                local set = toSet(entry[role])
+                -- an empty role set means "follow the class row": store it as nil
+                if set and (role == "DEFAULT" or set[1] ~= nil) then entry[role] = ordered(set) else entry[role] = nil end
             end
         end
     end
@@ -266,13 +281,22 @@ local function ensureEntry(preset, classToken)
     return entry
 end
 
--- The cell's current set to edit: an inheriting role cell starts from a copy of the DEFAULT set.
+-- The cell's current set to edit: an inheriting role cell (missing or empty) starts from a copy of the DEFAULT set.
 local function editableSet(entry, role)
-    local current = entry[role]
-    if current == nil then
-        current = role == "DEFAULT" and {} or (toSet(entry.DEFAULT) or {})
+    local current = toSet(entry[role]) or {}
+    if role ~= "DEFAULT" and current[1] == nil then
+        current = toSet(entry.DEFAULT) or {}
     end
-    return toSet(current) or {}
+    return current
+end
+
+-- Stores a cell: DEFAULT keeps an empty set ("no buff"); an empty role set is stored as nil (follow the class row).
+local function storeSet(entry, role, set)
+    if role ~= "DEFAULT" and set[1] == nil then
+        entry[role] = nil
+    else
+        entry[role] = ordered(set)
+    end
 end
 
 -- Turns one buff on or off in a cell. Turning a buff on replaces any other buff of the same catalog group.
@@ -285,19 +309,32 @@ function Presets.SetCellBuff(preset, classToken, role, key, on)
         if k ~= key and not (on and group and buffGroup(k) == group) then out[#out + 1] = k end
     end
     if on then out[#out + 1] = key end
-    entry[role] = ordered(out)
+    storeSet(entry, role, out)
     return true
 end
 
--- "None" for a group: removes every buff of that group from the cell.
+-- "None" for a group: removes every buff of that group from the cell. On a role row that is following the class
+-- row this is a no-op (nothing is stored); if it empties a role override the row follows the class row again.
 function Presets.ClearGroup(preset, classToken, role, groupId)
     if type(preset) ~= "table" or not isValidRole(classToken, role) then return false end
     local entry = ensureEntry(preset, classToken)
+    if role ~= "DEFAULT" and Presets.RoleInherits(preset, classToken, role) then
+        entry[role] = nil
+        return true
+    end
     local out = {}
     for _, k in ipairs(editableSet(entry, role)) do
         if buffGroup(k) ~= groupId then out[#out + 1] = k end
     end
-    entry[role] = ordered(out)
+    storeSet(entry, role, out)
+    return true
+end
+
+-- "Use class row": drops a role row's own buffs so it follows the class row (DEFAULT) again.
+function Presets.ResetRole(preset, classToken, role)
+    if type(preset) ~= "table" or role == "DEFAULT" or not isValidRole(classToken, role) then return false end
+    local entry = ensureEntry(preset, classToken)
+    entry[role] = nil
     return true
 end
 
@@ -330,7 +367,7 @@ function Presets.SetRule(preset, classToken, role, buffKey)
     if buffKey == nil or buffKey == "none" then
         if role == "DEFAULT" then entry.DEFAULT = {} else entry[role] = nil end
     else
-        entry[role] = { buffKey }
+        storeSet(entry, role, toSet(buffKey) or {})
     end
     return true
 end
@@ -458,12 +495,35 @@ function Presets.Rename(list, index, name)
     return true
 end
 
+-- Role rows whose set equals the class row become nil (follow the class row); the effective buffs are unchanged.
+local function sameSet(a, b)
+    a, b = toSet(a) or {}, toSet(b) or {}
+    if #a ~= #b then return false end
+    local seen = {}
+    for _, k in ipairs(a) do seen[k] = true end
+    for _, k in ipairs(b) do
+        if not seen[k] then return false end
+    end
+    return true
+end
+
+local function dropInheritedRoles(p)
+    for _, entry in pairs(p.map) do
+        if type(entry) == "table" then
+            for _, role in ipairs({ "TANK", "HEALER", "DAMAGER" }) do
+                if entry[role] ~= nil and sameSet(entry[role], entry.DEFAULT) then entry[role] = nil end
+            end
+        end
+    end
+    return p
+end
+
 -- Opt-in examples. Each returns a NEW preset table; the caller adds it (nothing is ever overwritten).
 -- Paladin: the old shipped 5-man blessing rules.
 function Presets.ExamplePaladin()
     local p = deepCopy(LEGACY[1])
     p.name = "Example: Paladin 5-man"
-    return p
+    return dropInheritedRoles(p)
 end
 
 local MELEE = { WARRIOR = true, ROGUE = true, HUNTER = true }
@@ -497,5 +557,5 @@ function Presets.ExampleFor(classToken)
         end
         p.map[target] = entry
     end
-    return p
+    return dropInheritedRoles(p)
 end

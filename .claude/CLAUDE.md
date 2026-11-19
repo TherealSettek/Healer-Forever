@@ -18,7 +18,7 @@ Read this file first, then the docs in `.claude/docs/` that match the task.
 HealerForever/        the addon (only this folder ships)
 tests/                Lua 5.1 / LuaJIT test suite with a WoW API mock (run via ./run-tests.sh)
 mockup/               HTML mockups (served at http://localhost:8765/ via python3 -m http.server)
-scripts/release.sh    build dist/HealerForever-v<ver>.zip (runs tests first)
+scripts/release.sh    build dist/HealerForever-v<ver>.zip (no tests); scripts/release-tests.sh runs the full suite, then release.sh
 .github/workflows/    test.yml (push to main + PRs, runs with HF_SKIP_MUTATION=1 to save free-plan minutes). No release workflow on purpose.
 .settings-backup/     the owner's REAL SavedVariables backups (gitignored, never publish)
 CHANGELOG.md          release notes
@@ -27,7 +27,7 @@ CHANGELOG.md          release notes
 ## Commands
 - `./run-tests.sh`: luacheck + full suite. Takes several minutes, and the mutation tests are the slow part. `./run-tests.sh <filter>` runs matching files only.
 - `luacheck HealerForever --config .luacheckrc` (installed in `~/.luarocks/bin`).
-- `./scripts/release.sh 0.9.1`: test, stamp the TOC version, zip to `dist/`. `HF_RELEASE_SKIP_TESTS=1` is for packaging checks only.
+- `./scripts/release.sh 0.9.1`: stamp the TOC version and zip to `dist/` (does NOT run the tests). `./scripts/release-tests.sh 0.9.1`: full suite (with mutations) first, then the same build; nothing is built if a test fails.
 - Mockups: `cd mockup && python3 -m http.server 8765`.
 
 ## Hard rules

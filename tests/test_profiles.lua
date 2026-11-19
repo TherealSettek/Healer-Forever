@@ -625,3 +625,294 @@ describe("profiles: the tests never touch the real game folder", function()
         assertNil(rawget(_G, "HealerForeverDB")); assertNil(rawget(_G, "HealerForeverCharDB"))
     end)
 end)
+
+-- ======================================================================== Raid Layout pane (raid Phase 4)
+local function raidPane(ns)
+    ns.Options:Show("raid"); mock.flushTimers()
+    for _, p in ipairs(ns.Options.panes) do if p.key == "raid" then return p.frame end end
+end
+-- every control of the pane with the text of its label (dropdowns / segments: row label; checkbox / slider: own label)
+local function raidControls(pane)
+    local out = {}
+    local root = pane.root
+    for _, f in ipairs(mock.frames) do
+        local s = st(f)
+        if s.parent == root and rawget(f, "Refresh") then
+            local label
+            if rawget(f, "rowLabel") then label = st(f.rowLabel).text
+            elseif rawget(f, "label") then label = st(f.label).text end
+            if label then out[label] = f end
+        end
+    end
+    return out
+end
+local function pickDropdown(dd, value)
+    st(dd).scripts.OnClick(dd, "LeftButton")
+    for i = #mock.frames, 1, -1 do
+        local p = mock.frames[i]
+        if rawget(p, "callback") and rawget(p, "items") then
+            for _, item in ipairs(p.items) do if item.value == value then p.callback(item); return true end end
+        end
+    end
+    return false
+end
+local function clickSegment(seg, value)
+    for _, b in ipairs(seg.buttons) do if b.value == value then st(b).scripts.OnClick(b, "LeftButton"); return true end end
+    return false
+end
+local function setCheck(cb, on) st(cb).checked = on; st(cb).scripts.OnClick(cb, "LeftButton") end
+local function setSlider(sl, v) st(sl.slider).scripts.OnValueChanged(sl.slider, v, true) end
+
+describe("profiles: Raid Layout pane", function()
+    it("every control writes ns.db.raid, applies live, survives a sparse save and reload", function()
+        local ns = boot({ group = 3 })
+        local pane = raidPane(ns)
+        local c = raidControls(pane)
+        for _, name in ipairs({ "Layout", "Groups", "Groups per line", "Sort within group", "Health text", "Ending look", "Several buffs",
+            "In combat", "Display", "Scale (%)", "Bar width", "Bar height", "Spacing", "Name size", "Name length", "Marker size",
+            "Rebuff under (%)", "Max debuff icons", "Debuff icon size", "Out of range alpha", "Raid layout only above 5 players",
+            "Group labels (G1-G8)", "Hide empty groups", "Show names", "Mute full-health bars", "Show incoming heals",
+            "Show my buff markers (top-right)", "Show \"ending\" marker", "Show debuffs you can dispel" }) do
+            assertNotNil(c[name], "control '" .. name .. "' not found")
+        end
+        assertTrue(pickDropdown(c["Layout"], "raid"))
+        assertTrue(clickSegment(c["Groups"], "rows")); assertTrue(clickSegment(c["Groups per line"], 4))
+        assertTrue(pickDropdown(c["Sort within group"], "class")); assertTrue(pickDropdown(c["Health text"], "percent"))
+        assertTrue(pickDropdown(c["Ending look"], "sweep")); assertTrue(pickDropdown(c["Several buffs"], "stack"))
+        assertTrue(pickDropdown(c["In combat"], "dim")); assertTrue(pickDropdown(c["Display"], "icons"))
+        setSlider(c["Scale (%)"], 80); setSlider(c["Bar width"], 90); setSlider(c["Bar height"], 30); setSlider(c["Spacing"], 4)
+        setSlider(c["Name size"], 9); setSlider(c["Name length"], 10); setSlider(c["Marker size"], 12)
+        setSlider(c["Rebuff under (%)"], 12); setSlider(c["Max debuff icons"], 2); setSlider(c["Debuff icon size"], 14)
+        setSlider(c["Out of range alpha"], 35)
+        for _, name in ipairs({ "Group labels (G1-G8)", "Hide empty groups", "Show names", "Mute full-health bars", "Show incoming heals",
+            "Show my buff markers (top-right)", "Show \"ending\" marker", "Show debuffs you can dispel" }) do
+            setCheck(c[name], false)
+        end
+        mock.flushTimers()
+        assertEquals(#mock.errors, 0, errstr())
+        local r = ns.db.raid
+        assertEquals(r.layoutMode, "raid"); assertEquals(r.groupArrange, "rows"); assertEquals(r.groupsPerLine, 4)
+        assertEquals(r.sortWithin, "class"); assertEquals(r.healthText, "percent"); assertEquals(r.buffs.endingLook, "sweep")
+        assertEquals(r.buffs.multi, "stack"); assertEquals(r.buffs.inCombat, "dim"); assertEquals(r.debuffs.display, "icons")
+        assertEquals(r.scale, 80); assertEquals(r.width, 90); assertEquals(r.height, 30); assertEquals(r.spacing, 4)
+        assertEquals(r.nameSize, 9); assertEquals(r.nameLength, 10); assertEquals(r.buffs.size, 12); assertEquals(r.buffs.rebuffPercent, 12)
+        assertEquals(r.debuffs.max, 2); assertEquals(r.debuffs.size, 14); assertEquals(r.rangeAlpha, 35)
+        assertEquals(r.groupLabels, false); assertEquals(r.hideEmptyGroups, false); assertEquals(r.showNames, false)
+        assertEquals(r.muteFull, false); assertEquals(r.showIncoming, false); assertEquals(r.buffs.show, false)
+        assertEquals(r.buffs.showEnding, false); assertEquals(r.debuffs.show, false)
+        -- live: Always raid shows the raid frames with the new size
+        assertEquals(ns.RaidFrames.active, "raid")
+        assertEquals(st(ns.RaidFrames.buttons[1]).w, 90)
+        assertEquals(st(ns.RaidFrames.anchor).scale, 0.8)
+        -- sparse save: only the raid keys that changed, the point untouched
+        local want = deepcopy(r)
+        local saved = ns:BuildSaveTable()
+        assertNil(saved.raid.point, "point unchanged: not saved")
+        assertNil(saved.raid.onlyAbove5, "onlyAbove5 unchanged: not saved")
+        mock.fire("PLAYER_LOGOUT")
+        local ns2 = boot({ char = deepcopy(HealerForeverCharDB), group = 3 })
+        assertDeepEquals(ns2.db.raid, want)
+        local c2 = raidControls(raidPane(ns2))
+        assertEquals(st(c2["Layout"].text).text, "Always raid", "the dropdown shows the saved value")
+        assertEquals(st(c2["Bar width"].slider).value, 90)
+        assertEquals(#mock.errors, 0, errstr())
+    end)
+    it("Reset raid defaults restores everything except the position", function()
+        local ns = boot({ group = 3 })
+        local pane = raidPane(ns)
+        ns.db.raid.width = 100; ns.db.raid.buffs.multi = "first"; ns.db.raid.layoutMode = "party"
+        ns.db.raid.point = { point = "CENTER", relativePoint = "CENTER", x = 12, y = 34 }
+        st(pane.resetButton).scripts.OnClick(pane.resetButton, "LeftButton")
+        local want = deepcopy(ns.DEFAULTS.raid)
+        want.point = { point = "CENTER", relativePoint = "CENTER", x = 12, y = 34 }
+        assertDeepEquals(ns.db.raid, want)
+        assertTrue(ns.db.raid.buffs ~= ns.DEFAULTS.raid.buffs, "a copy, never the DEFAULTS tables")
+        assertDeepEquals(ns:BuildSaveTable().raid, { point = want.point })
+    end)
+    it("glow display choices are refused when the client can't hand the glow to the game", function()
+        local ns = boot({ group = 3 })
+        local pane = raidPane(ns)
+        ns.RaidFrames.glowSupported = false
+        pane:Refresh()
+        local dd = raidControls(pane)["Display"]
+        ns.db.raid.debuffs.display = "icons"
+        pickDropdown(dd, "glow")
+        assertEquals(ns.db.raid.debuffs.display, "icons", "glow refused")
+        pickDropdown(dd, "glowIcons")
+        assertEquals(ns.db.raid.debuffs.display, "icons", "glow + icons refused")
+        assertTrue(st(pane.glowNote).text:find("isn't available", 1, true) ~= nil)
+        ns.RaidFrames.glowSupported = true
+        pickDropdown(dd, "glow")
+        assertEquals(ns.db.raid.debuffs.display, "glow")
+    end)
+    it("'only above 5' is greyed unless Auto; the status line follows the layout and a queued switch", function()
+        local ns = boot({ group = 3 })
+        local pane = raidPane(ns)
+        local c = raidControls(pane)
+        local above5 = c["Raid layout only above 5 players"]
+        assertEquals(st(above5.label).textColor.r, 1)
+        pickDropdown(c["Layout"], "party"); pane:Refresh()
+        assertEquals(st(above5.label).textColor.r, 0.5)
+        pickDropdown(c["Layout"], "auto"); pane:Refresh()
+        assertEquals(st(above5.label).textColor.r, 1)
+        assertEquals(st(pane.status).text, "Now: Party layout (not in a raid)")
+        mock.state.combat = true; mock.fire("PLAYER_REGEN_DISABLED")
+        mock.setRaid(12); mock.fire("GROUP_ROSTER_UPDATE"); mock.flushTimers()
+        pane:Refresh()
+        assertEquals(st(pane.status).text, "Now: Party layout (in a raid of 12) - switches to raid after combat")
+        mock.state.combat = false; mock.fire("PLAYER_REGEN_ENABLED"); mock.flushTimers()
+        pane:Refresh()
+        assertEquals(st(pane.status).text, "Now: Raid layout (in a raid of 12)")
+        assertEquals(#mock.errors, 0, errstr())
+    end)
+    it("preview button and size segment drive the preview; refusals show in the pane", function()
+        local ns = boot({ group = 3 })
+        local pane = raidPane(ns)
+        st(pane.previewButton).scripts.OnClick(pane.previewButton, "LeftButton")
+        assertTrue(ns.RaidPreview:IsOn())
+        assertEquals(st(pane.previewButton).text, "Preview full raid: ON")
+        clickSegment(pane.sizeSegment, 20)
+        assertEquals(ns.RaidPreview.size, 20)
+        st(pane.previewButton).scripts.OnClick(pane.previewButton, "LeftButton")
+        assertFalse(ns.RaidPreview:IsOn())
+        mock.state.combat = true
+        st(pane.previewButton).scripts.OnClick(pane.previewButton, "LeftButton")
+        assertEquals(st(pane.previewMessage).text, "Can't preview in combat.")
+        mock.state.combat = false
+    end)
+    it("geometry: rows never overlap, labels fit their column, nothing wider than 540, boxes contain their rows", function()
+        local ns = boot({ group = 3 })
+        local pane = raidPane(ns)
+        local root = pane.root
+        local rects = {}
+        local function textW(s) return #tostring(s.text or "") * 6 end
+        for _, f in ipairs(mock.frames) do
+            local s = st(f)
+            local p = s.points[1]
+            if s.parent == root and p and p[1] == "TOPLEFT" and type(p[2]) == "number" and f ~= pane.groupBox then
+                local w = s.w or textW(s)
+                local h = s.h or 12
+                if s.kind == "CheckButton" then
+                    -- the 24 px box is the hit rect; its label sits to the right, vertically centred (12 px high)
+                    rects[#rects + 1] = { x = p[2] + 26, y = -p[3] + 6, w = #tostring(st(f.label).text) * 6, h = 12,
+                        name = ("label " .. tostring(st(f.label).text)):sub(1, 40), kind = "FontString" }
+                end
+                rects[#rects + 1] = { x = p[2], y = -p[3], w = w, h = h, name = (s.kind .. " " .. tostring(s.text ~= "" and s.text or (rawget(f, "label") and st(f.label).text) or "")):sub(1, 40), f = f, kind = s.kind }
+            end
+        end
+        assertTrue(#rects > 60, "rows found: " .. #rects)
+        for _, r in ipairs(rects) do
+            assertTrue(r.x >= -4 and r.x + r.w <= 540, r.name .. string.format(" outside 540 (x=%d w=%d)", r.x, r.w))
+            assertTrue(r.y + r.h <= pane.contentHeight, r.name .. " below the content height")
+        end
+        -- row labels of dropdowns / segments end before the control column (x = 150)
+        for _, f in ipairs(mock.frames) do
+            if st(f).parent == root and rawget(f, "rowLabel") then
+                assertTrue(#tostring(st(f.rowLabel).text) * 6.5 < 146, "label '" .. tostring(st(f.rowLabel).text) .. "' runs into its control")
+            end
+        end
+        local function overlap(a, b) return a.x < b.x + b.w and b.x < a.x + a.w and a.y < b.y + b.h and b.y < a.y + a.h end
+        for i = 1, #rects do
+            for j = i + 1, #rects do
+                local a, b = rects[i], rects[j]
+                if a.kind ~= "Texture" and b.kind ~= "Texture" then
+                    assertFalse(overlap(a, b), "'" .. a.name .. "' overlaps '" .. b.name .. "'")
+                end
+            end
+        end
+        -- the Groups box contains the group rows (Groups .. the group note)
+        local box = st(pane.groupBox)
+        local top, bottom = -box.points[1][3], -box.points[1][3] + box.h
+        local noteY = -st(pane.groupNote).points[1][3]
+        assertTrue(noteY + 12 <= bottom, "the group note sits inside the box")
+        for _, r in ipairs(rects) do
+            if r.name:find("Groups per line", 1, true) or r.name:find("Sort within", 1, true) or r.name:find("Hide empty", 1, true) then
+                assertTrue(r.y >= top and r.y + r.h <= bottom, r.name .. " outside the Groups box")
+            end
+        end
+        -- legend rows: 11 rows, 15 px apart, right of the sample holder
+        assertEquals(#pane.legend, 11)
+        for i, row in ipairs(pane.legend) do
+            local p = st(row.swatch).points[1]
+            assertTrue(p[2] >= 210 + 10, "legend swatch clear of the sample holder")
+            if i > 1 then
+                local q = st(pane.legend[i - 1].swatch).points[1]
+                assertEquals(q[3] - p[3], 15, "legend row spacing")
+            end
+        end
+        assertEquals(st(root).h, pane.contentHeight)
+        assertEquals(#mock.errors, 0, errstr())
+    end)
+end)
+
+describe("profiles: Raid Layout legend sample bar", function()
+    it("the sample bar shows the whole name 'Sample' (name sizes 6-9 at the default 64 x 24), number and texts inside the bar", function()
+        local ns = boot({ group = 3 })
+        local pane = raidPane(ns)
+        local sample = pane.sample
+        assertNotNil(sample)
+        for _, size in ipairs({ 6, 7, 8, 9, 10 }) do
+            ns.db.raid.nameSize = size
+            pane:Refresh(); mock.flushTimers()
+            local c = ns.db.raid
+            local label = "nameSize " .. size
+            assertEquals(st(sample.name).text, "Sample", label)
+            local layout = sample.textLayout
+            if size == 10 then
+                -- 64 x 24 with a 12 px name line has no room for a stacked 12 px number: side by side, and like the
+                -- real bars the name gives way to the number when it gets under 6 px
+                assertFalse(layout.stacked, label)
+                assertEquals(st(sample.name).shown, layout.nameW >= 6, label .. ": sample follows the real layout")
+                break
+            end
+            assertTrue(st(sample.name).shown, label .. ": name shown")
+            -- the addon's own width model (RS.NameWidthCap: 0.6 x font size per character)
+            local need = math.ceil(#"Sample" * size * 0.6)
+            assertTrue(st(sample.name).w >= need, label .. ": name width " .. tostring(st(sample.name).w) .. " < " .. need .. " (cut)")
+            assertTrue(layout.numLeft >= 2, label .. ": number left edge")
+            if not layout.stacked then
+                assertTrue(layout.numLeft - 3 - st(sample.name).w >= 2, label .. ": name starts inside the bar")
+            end
+            assertTrue(st(sample.name).w <= c.width - 4, label .. ": name inside the bar")
+        end
+        assertEquals(#mock.errors, 0, errstr())
+    end)
+end)
+
+describe("profiles: smart buff with a secret name, NameWidthCap", function()
+    it("a secret UnitName on the smart button target goes straight into the label (no error)", function()
+        local ns = boot({ group = 3, class = "PALADIN" })
+        ns.db.smartButton.show = true
+        local realName = UnitName
+        mock.setGlobal("UnitName", function(u) if u ~= "player" then return mock.newSecret() end return realName(u) end)
+        ns:Changed("presets"); mock.tick(); mock.flushTimers()
+        assertEquals(#mock.errors, 0, errstr())
+        local smart = ns.BuffButtons.smart
+        if smart.castUnit and smart.castUnit ~= "player" then
+            assertTrue(mock.isSecret(st(smart.label).text), "secret name passed to SetText")
+            assertEquals(smart.pendingText, smart.castSpell .. " on " .. smart.castUnit)
+        end
+    end)
+    it("RaidStyle.NameWidthCap = ceil(nameLength * nameSize * 0.6), nil for bad input, never wider than the layout allows", function()
+        local ns = boot({ group = 0 })
+        local RS = ns.RaidStyle
+        for n = 3, 12 do
+            for size = 6, 10 do
+                assertEquals(RS.NameWidthCap({ nameLength = n, nameSize = size }), math.ceil(n * size * 0.6))
+            end
+        end
+        assertEquals(RS.NameWidthCap({ nameLength = 3, nameSize = 6 }), 11)
+        assertEquals(RS.NameWidthCap({ nameLength = 12, nameSize = 10 }), 72)
+        assertNil(RS.NameWidthCap(nil)); assertNil(RS.NameWidthCap({ nameLength = "7", nameSize = 7 }))
+        local f = ns.NewFrame("Frame", nil, UIParent)
+        RS.Build(f)
+        local cfg = deepcopy(ns.db.raid)
+        cfg.width, cfg.nameLength, cfg.nameSize = 120, 3, 7
+        RS.Apply(f, cfg); RS.ShowNumber(f, "deficit")
+        assertEquals(st(f.name).w, RS.NameWidthCap(cfg), "short name length caps a wide bar's name")
+        cfg.nameLength, cfg.width = 12, 50
+        RS.Apply(f, cfg); RS.ShowNumber(f, "deficit")
+        assertTrue(f.textLayout.nameW < RS.NameWidthCap(cfg))
+        assertEquals(st(f.name).w, f.textLayout.nameW, "the layout width wins when it is smaller than the cap")
+    end)
+end)

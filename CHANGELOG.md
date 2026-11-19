@@ -1,6 +1,43 @@
 # Changelog
 
-## 0.10.1 (beta)
+## 0.11.0
+
+- New Raid layout with its own settings in a new "Raid Layout" options tab. Your party frames and every setting you
+  saved before stay exactly as they were.
+  - Switching: Auto (default), Always party or Always raid. In Auto the raid layout is used in raids above 5 players
+    (a small raid split across groups uses it too) and in battlegrounds. If you join in combat, the switch waits until
+    combat ends.
+    If the raid ends (or you are removed) in combat, the party bars come back at once (Auto mode); the rest of the
+    switch finishes after combat.
+  - 40 bars in 8 groups, arranged as Columns or Rows with 8, 4 or 2 groups per line. Group labels G1-G8, empty groups
+    hidden, sort by role or class inside a group.
+  - Look "Hurt stands out": bars are muted at full health and full colour when hurt, missing health is shown big and
+    red in the centre (never cut), the name is small in the top-left corner. DEAD, GHOST, OFFLINE, CAN'T RES and "?"
+    (not visible) show in the centre; out of range dims the bar with a dashed outline.
+  - Your buffs only: a small spell icon top-right. Gold border = missing; orange border that pulses = ending (under the
+    rebuff %, default 5). Checked out of combat only and hidden in combat (or kept dimmed). Not clickable.
+  - Debuffs: only the ones your class can dispel, as a coloured glow around the bar plus up to 3 icons.
+  - Click-casting (including Cmd on Mac and resurrect on click) works on raid bars the same as on party bars.
+  - "Preview full raid" button (10/20/25/40 fake players) to try the options; not clickable, turns itself off in
+    combat or when you join a real raid, never saved.
+  - "What each corner means" legend in the options tab.
+  - Commands: `/hf raid` (which layout is active and why; `/hf raid auto|party|raid` sets it), `/hf raid preview
+    [10|20|25|40|off]`, `/hf debug raid`, `/hf debug click raidN`.
+- `/hf perf`: shows how much CPU and memory Healer Forever uses next to your other addons (top 8 plus ours).
+  `/hf perf start [seconds]` (default 60) times our own code while you play and `/hf perf stop` ends it early. The
+  numbers are also in `/hf report` and `/hf copy`. If the game can't measure CPU per addon, it says so instead of
+  showing zeros.
+- Buff Presets: Tank / Healer / DPS rows now follow the class row unless you pick buffs for them. In the role-row
+  popup, "None" is replaced by "Use class row" (selected by default), which resets the row. Role rows you emptied
+  before now follow the class row too, so setting a buff on the class row is enough. The class row and the Self row
+  still use "None" for no buff.
+- Fixed: a Lua error "bad argument #4 to 'SetTextColor'" when changing settings with a health bar colour other than
+  "Class colours" (player names are drawn in class colour in that mode).
+- Fixed: "addon blocked" (SetPropagateMouseMotion) logged many times in combat when new buff or debuff icons appeared.
+  Their mouse setup now waits until combat ends; new icons are click-through from the start, so click-casting on the
+  bar keeps working.
+
+## 0.10.1
 
 - New "Help & Contact" options tab with the support email (read-only box plus Copy button), a "Report a problem"
   button and a short how-to-report checklist. The options footer has a clickable "Contact" link.

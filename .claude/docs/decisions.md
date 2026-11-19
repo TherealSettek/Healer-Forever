@@ -58,3 +58,43 @@
 - The support email in Help & Contact is fine (it is contact, not solicitation).
 - CurseForge: the avatar must be exactly 400x400 (`media/healer-forever-logo-400.png`); every file needs a changelog; never delete and re-upload after a rejection.
   The name rule is "no game name": "Healer Forever" may get questioned, so explain that it is the addon brand.
+
+## Raid layout (2026-11-18, mockups `mockup/raid-style-d.html` and `mockup/raid-frames.html`)
+- **Separate Raid layout with its own settings** (`raid`). The party layout and every setting saved by earlier versions stay exactly as they
+  were after an update (hard rule: updates keep user settings).
+- **Switching:** Auto (default) / Always party / Always raid, plus "raid layout only above 5 players" (default on). **Battlegrounds use the raid
+  layout.** A raid of 5 or fewer that is split across subgroups uses the raid layout too. The switch only happens out of combat; in combat it
+  waits and says so once in chat.
+- **Style D, "Hurt stands out":** muted bars at full health, full colour when hurt; missing HP big, bold and red in the centre and never cut;
+  the name small in the top-left and cut first; DEAD / GHOST / OFFLINE / CAN'T RES / "?" in the centre.
+- **Groups:** Columns or Rows, with 8, 4×2 or 2×4 groups per line. Group labels G1-G8 on by default. A "What each corner means" legend sits in
+  the options tab.
+- **Name length cap:** "Name length" (3-12 characters, default 7) caps the name's width. Names can be secret, so the FontString width is set
+  and the game cuts the text; the addon never shortens a name with string functions.
+- **My buffs only:** a small spell icon top-right. Gold border = missing; **orange border + pulse = ending** (under the rebuff %, default 5).
+  With several buffs the default is **one icon per state** (first missing with a count badge, plus first ending; max 2). Checked out of combat
+  only; hidden in combat (option: keep last known, dimmed). **Raid buff markers are not clickable**: casting stays on click-casting, the
+  smart buff key (which covers the raid while the raid layout is active) and the party buff buttons.
+- **Debuffs: only types my class can dispel**, shown as "Glow + icons" (bar edge glow in the dispel colour + game-drawn icons bottom-right,
+  max 3, shrink to fit). The glow needs checking in game; if the game refuses it, icons only.
+- **Dropped from the mockup, and why:** the "Letters" debuff modes (M/C/D/P) and "All dispellable types". Both need the debuff type in our own
+  code, but in combat that value is secret and aura reads are locked for addons, and the game's container filter only offers "dispellable by
+  me" (`RAID_PLAYER_DISPELLABLE`). We can't build them without breaking the secret-value rules.
+- **Preview full raid** (10/20/25/40): fake, non-secure frames at the raid position, not clickable, off in combat or when a real raid starts,
+  never saved.
+- **Shared lock:** the raid frame uses the same "Lock frames" toggle as the party frames. Default raid position TOPLEFT 60,-330 (tune in game).
+- **Leaving a raid in combat (review fix, 2026-11-19):** in Auto mode the party frames come back at once through secure visibility drivers
+  (`[group:raid]`) on both anchors; the party buttons keep their unit watch while the raid layout is active. Chosen over "no frames until
+  combat ends" because it is the standard secure pattern (the game calls Show/Hide; no addon code in the protected path) and changes nothing
+  when no raid exists (no driver is registered then). The full switch (layout, click-casting) still happens after combat; party click-casting
+  stays armed all along. "Always raid" keeps the old behaviour (party unwatched). Joining a raid in combat still waits for combat end
+  (group size can't be expressed as a macro condition).
+- **Deficit "only when hurt" (review fix):** constant red text, shown/hidden through its alpha from a float Step curve; full health counts from
+  99.5 % (`RS.FULL_AT`), so a full bar that reports 0.99999 still mutes and hides the number. Same threshold for the muted bar colour.
+- **Bar glow (review fix):** a dedicated one-button glow container per bar, so the glow never depends on which icon button the game recycles,
+  and glow-only mode simply doesn't run the icon container. Glow outset is at most half the bar spacing (no overlap with neighbours).
+
+## Performance check (2026-11-18)
+- `/hf perf` was added after a user said the game got slow with many addons and Questie's minimap circles vanished after enabling Healer
+  Forever. Our error log only sees our own errors, so the command shows numbers: CPU/memory per addon (ours vs the others) and, with
+  `/hf perf start`/`stop`, timings of our own hot paths. It's also in `/hf report` and `/hf copy`. Nothing is sent anywhere.

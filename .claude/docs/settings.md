@@ -15,6 +15,21 @@
   `roleOverrides`, `customSpells`, and custom colour tables. A deleted default binding stays deleted because its table differs.
 - Always kept: `version`, `migratedFrom`, and a non-empty `errorLog` (capped at 50 entries, with repeats counted).
 
+## Raid layout settings (`raid`, added after 0.10.1, no schema bump)
+- All raid options live under `ns.db.raid` (defaults in `ns.DEFAULTS.raid`): `layoutMode` (auto|party|raid), `onlyAbove5`, `point`, `scale`,
+  `width`, `height`, `spacing`, `groupArrange` (columns|rows), `groupsPerLine` (8|4|2), `groupLabels`, `sortWithin` (none|role|class),
+  `hideEmptyGroups`, `showNames`, `nameSize`, `nameLength`, `healthText` (deficit|percent|none), `muteFull`, `showIncoming`, `rangeAlpha`,
+  `buffs.{show,size,rebuffPercent,showEnding,endingLook,multi,inCombat}`, `debuffs.{show,display,max,size}`. Ranges and enums are in
+  `.claude/docs/raid-layout-plan.md` §1.
+- **No schema bump and no migration:** the keys are new, so old saves simply don't have them and get the defaults. Nothing that 0.10.1 saved
+  changes (`tests/test_raid_settings.lua` and the 0.10.1 fixtures check this).
+- Validation is the pure `RaidLayout.Normalize(r)`, called from `buildDB`. Bad values fall back to the default.
+- **Sparse save:** an untouched raid block writes no `raid` key at all; one change saves only that leaf. `raid.point` is **atomic** (the global
+  `point` entry in `ATOMIC_KEYS`), so a moved raid frame saves the whole point table. Don't name raid sub-keys `order` or `custom`: those names
+  are atomic globally.
+- The lock is shared: the raid uses `frames.locked`. The preview state (on/off, size) is runtime only and never saved.
+- "Reset raid defaults" in the Raid Layout tab resets everything under `raid` except `point`.
+
 ## Clean-install defaults (deliberate, see decisions.md)
 - Bindings: only plain Left = target and plain Right = menu.
 - One empty preset, "Default". No buff buttons appear until the user adds rules.

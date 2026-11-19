@@ -2,7 +2,7 @@
 
 Created by trtg.
 
-Party healing frames for **WoW Forever** (modern Mainline/Midnight addon API): click-casting, buff presets,
+Party and raid healing frames for **WoW Forever** (modern Mainline/Midnight addon API): click-casting, buff presets,
 heal prediction, one-click resurrection and class-coloured minimap pins. No external libraries.
 
 ## Install
@@ -27,6 +27,14 @@ The TOC uses `## Interface: 16001, 120005`. 16001 is the community-reported Fore
 
 - Party frames (player + party1-4 + pets): horizontal (pet below) or vertical (pet right); movable as a group,
   manual order with up/down plus sort by role / class / name.
+- Raid layout (Options > Raid Layout) with its own settings; your party frames and settings are not changed. Switching:
+  Auto (raids above 5 players and battlegrounds; a small raid split across groups too) / Always party / Always raid; the
+  switch waits for the end of combat. 40 bars in 8 groups as Columns or Rows (8, 4 or 2 groups per line), group labels,
+  hide empty groups, sort by role or class. Look "Hurt stands out": muted at full health, missing health big and red in
+  the centre, small name top-left, DEAD / GHOST / OFFLINE / CAN'T RES / "?" states, out-of-range dimming. Your own buffs
+  only, top-right (gold border = missing, orange pulsing border = ending; checked out of combat, not clickable).
+  Debuffs you can dispel: a coloured glow around the bar plus up to 3 icons. Click-casting works on raid bars.
+  "Preview full raid" (10/20/25/40 fake players, never saved) and a "What each corner means" legend.
 - Original party-frame look with a border around the health and power bars only (Options > Frames & Bars): style
   None / Thin / Tooltip / Vanilla gold, thickness 1-4, colour class / black / gold / custom. Buffs sit above the bar and
   debuffs below (larger, dispel-coloured borders, timers); positions, sizes, icons per row and grow direction are in
@@ -92,9 +100,14 @@ WoW only writes SavedVariables on /reload or a clean logout/exit, so changes are
 
 `/hf` or `/healerforever` opens options. `/hf lock`, `/hf unlock`, `/hf preset <n>` (no number lists presets),
 `/hf reset`, `/hf profile`, `/hf copyaccount`, `/hf debug buffs` / `/hf debug auras` (prints why each unit's buff button is shown or hidden, including role buffs).
+`/hf raid` shows which layout is active and why (`/hf raid auto|party|raid` sets the switching); `/hf raid preview
+[10|20|25|40|off]` shows a fake full raid; `/hf debug raid` and `/hf debug click raidN` explain the raid state.
+`/hf perf` shows CPU and memory per addon (top 8 plus Healer Forever); `/hf perf start [seconds]` / `/hf perf stop`
+time our own code over a window. CPU per addon needs the game's addon profiler, or the scriptProfile CVar; without
+either, only memory is shown and the output says so.
 `/hf mark [note]` saves a snapshot of the current moment (time, combat state, zone, group size, aura and buff debug
 output; the last 5 are kept, `/hf mark clear` removes them). `/hf report` opens a copy window with a ready-to-email
-report (versions, client, settings summary, other addons, recent errors, debug runs and marks). `/hf contact` prints the
+report (versions, client, settings summary, performance, other addons, recent errors, debug runs and marks). `/hf contact` prints the
 support email and opens the Help & Contact tab. The Help & Contact tab also lists every command, the keybindings, a
 3-step quick start and a few good-to-know notes (the in-game list is generated from the same table as `/hf help`).
 
@@ -143,8 +156,8 @@ override does not win, the plain binding of that button runs. "Unit menu" only w
 
 ## For developers: releasing
 
-`./run-tests.sh` runs luacheck and the Lua tests. `scripts/release.sh <version>` (e.g. `0.9.0`) validates the
-version, runs the tests, copies `HealerForever/` to `dist/`, stamps the version into the copied TOC (the source TOC has
+`./run-tests.sh` runs luacheck and the Lua tests. `scripts/release-tests.sh <version>` (e.g. `0.9.0`) runs the full test suite and then
+`scripts/release.sh <version>`, which validates the version, copies `HealerForever/` to `dist/`, stamps the version into the copied TOC (the source TOC has
 `## Version: @project-version@`, shown as "dev" in game) and builds `dist/HealerForever-v<version>.zip` with the
 `HealerForever` folder at the zip root, then prints the sha256. Upload that zip to CurseForge by hand, with game
 version "Forever 1.60.1". `.github/workflows/test.yml` runs the tests on pushes to `main` and on pull requests, without

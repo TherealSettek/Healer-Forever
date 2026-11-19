@@ -401,6 +401,10 @@ Auras.mode = "fallback"
 Auras.containerErrors = {}
 local containerState = setmetatable({}, { __mode = "k" })
 local BUTTON_TEMPLATE = "HealerForeverAuraButtonTemplate"
+-- raid only (Auras.xml): no mouse from creation on; the glow carrier has no visible parts
+local RAID_BUTTON_TEMPLATE = "HealerForeverRaidAuraButtonTemplate"
+local RAID_GLOW_TEMPLATE = "HealerForeverRaidGlowButtonTemplate"
+Auras.RAID_BUTTON_TEMPLATE, Auras.RAID_GLOW_TEMPLATE = RAID_BUTTON_TEMPLATE, RAID_GLOW_TEMPLATE
 
 local function containerError(label, err)
     ns.LogError("aura-container:" .. label, err)
@@ -502,6 +506,56 @@ local function frameStep(_, label, fn)
     if not ok then containerError(label, err) end
 end
 
+-- Mouse setup of the native aura buttons. The game creates new aura buttons mid-fight (initializeFrame runs then),
+-- and the mouse setters are blocked in combat (real log: "ADDON_ACTION_BLOCKED: Button:SetPropagateMouseMotion()",
+-- in combat, count 80). In combat the wanted state is only remembered and applied when combat ends. Until then a
+-- new button keeps the XML template defaults (clicks off, motion on), so clicks still fall through to the unit button.
+local mousePending = setmetatable({}, { __mode = "k" })
+
+local function setMouseNow(frame, mouse, inside)
+    -- hover tooltip only; clicks always fall through to the secure unit button underneath
+    if frame.SetMouseClickEnabled then frame:SetMouseClickEnabled(false) end
+    if frame.SetMouseMotionEnabled then frame:SetMouseMotionEnabled(mouse) end
+    if frame.SetPropagateMouseMotion then frame:SetPropagateMouseMotion(inside) end
+    frame.hfMouseKey = (mouse and "m" or "-") .. (inside and "i" or "-")
+end
+
+local function flushMouse()
+    local list = {}
+    for frame, want in pairs(mousePending) do list[#list + 1] = { frame, want } end
+    for _, item in ipairs(list) do
+        local frame, want = item[1], item[2]
+        if ns.InCombat() then
+            ns:AfterCombat("aura-mouse", flushMouse, true)
+            return
+        end
+        mousePending[frame] = nil
+        local ok, err = pcall(setMouseNow, frame, want.mouse, want.inside)
+        if not ok then containerError("mouse", err) end
+    end
+end
+Auras.FlushMouse = flushMouse
+
+local function applyMouse(frame, mouse, inside)
+    if frame.hfMouseKey == (mouse and "m" or "-") .. (inside and "i" or "-") then
+        mousePending[frame] = nil
+        return
+    end
+    if ns.InCombat() then
+        mousePending[frame] = { mouse = mouse, inside = inside }
+        ns:AfterCombat("aura-mouse", flushMouse, true)
+        return
+    end
+    mousePending[frame] = nil
+    setMouseNow(frame, mouse, inside)
+end
+
+function Auras.MousePendingCount()
+    local n = 0
+    for _ in pairs(mousePending) do n = n + 1 end
+    return n
+end
+
 local function configureFrame(st, frame)
     local g = st.geom
     frameStep(st, "size", function() frame:SetSize(g.size, g.size) end)
@@ -527,12 +581,12 @@ local function configureFrame(st, frame)
             frame.Backdrop:SetVertexColor(0, 0, 0, 1)
         end
     end)
-    frameStep(st, "mouse", function()
-        -- hover tooltip only; clicks always fall through to the secure unit button underneath
-        if frame.SetMouseClickEnabled then frame:SetMouseClickEnabled(false) end
-        if frame.SetMouseMotionEnabled then frame:SetMouseMotionEnabled(g.mouse) end
-        if frame.SetPropagateMouseMotion then frame:SetPropagateMouseMotion(g.inside) end
-    end)
+    if g.compact then
+        -- raid debuff icons are tiny: no countdown text (the game still draws the cooldown swipe)
+        frameStep(st, "compact", function() frame.Time:SetAlpha(0) end)
+    end
+    -- deferred to the end of combat when needed (see applyMouse)
+    frameStep(st, "mouse", function() applyMouse(frame, g.mouse, g.inside) end)
     frameStep(st, "dispel-border", function()
         if st.kind ~= "debuff" then return end
         local want = g.colorBorder
@@ -548,7 +602,29 @@ local function configureFrame(st, frame)
     end)
 end
 
+-- The n-th distinct frame this container initialised (1-based). The game may run initializeFrame again on a frame it
+-- reuses from its pool: the frame keeps its first index, so the count never inflates.
+local function initIndex(st, frame)
+    st.initSeen = st.initSeen or setmetatable({}, { __mode = "k" })
+    local index = st.initSeen[frame]
+    if not index then
+        st.initCount = (st.initCount or 0) + 1
+        index = st.initCount
+        st.initSeen[frame] = index
+    end
+    return index
+end
+
 local function initializeFrame(st, frame)
+    if st.geom.glowOnly then
+        -- raid glow carrier: nothing to wire (no icon, timer or count); the hook hands it the glow texture
+        local hooks = st.hooks
+        if hooks and hooks.onInit then
+            local index = initIndex(st, frame)
+            frameStep(st, "init-hook", function() hooks.onInit(frame, index, st) end)
+        end
+        return
+    end
     frameStep(st, "icon", function() frame:SetIcon(frame.Icon) end)
     frameStep(st, "cooldown", function() frame:SetDurationCooldown(frame.Cooldown) end)
     frameStep(st, "duration-text", function()
@@ -557,6 +633,11 @@ local function initializeFrame(st, frame)
     end)
     frameStep(st, "count", function() frame:SetApplicationCount(frame.Count, {}) end)
     configureFrame(st, frame)
+    local hooks = st.hooks
+    if hooks and hooks.onInit then
+        local index = initIndex(st, frame)
+        frameStep(st, "init-hook", function() hooks.onInit(frame, index, st) end)
+    end
 end
 
 local function groupOptions(st)
@@ -577,9 +658,10 @@ local function applyFlow(st)
     c:SetPoint(g.anchor, st.zone, g.anchor, 0, 0)
 end
 
-local function createContainer(button, kind)
-    local zone = button.zones[kind]
-    local st = { kind = kind, zone = zone, geom = Auras.ContainerGeometry(kind, ns.db.auras) }
+-- The one raw CreateFrame of the addon (an AuraContainer must not be wrapped by ns.NewFrame). Party zones and the raid
+-- debuff zones both come through here.
+local function buildContainer(zone, kind, geom, hooks)
+    local st = { kind = kind, zone = zone, geom = geom, hooks = hooks }
     local frame = CreateFrame("AuraContainer", nil, zone, "CustomAuraContainerTemplate")
     if type(frame.AddAuraGroup) ~= "function" or type(frame.SetUnit) ~= "function" then
         error("AuraContainer API missing on the created frame")
@@ -589,7 +671,7 @@ local function createContainer(button, kind)
     st.unit = "none"
     frame:AddAuraGroup(kind, st.geom.filter, {
         maxFrameCount = st.geom.max,
-        templateNames = { BUTTON_TEMPLATE },
+        templateNames = { st.geom.template or BUTTON_TEMPLATE },
         initializeFrame = function(f) initializeFrame(st, f) end,
         sortMethod = AuraContainerSortMethod.Default,
         sortDirection = AuraContainerSortDirection.Normal,
@@ -601,6 +683,10 @@ local function createContainer(button, kind)
     return st
 end
 
+local function createContainer(button, kind)
+    return buildContainer(button.zones[kind], kind, Auras.ContainerGeometry(kind, ns.db.auras))
+end
+
 local function eachGroupFrame(st, fn)
     local c = st.frame
     local n = c:GetAuraGroupFrameCount(st.kind)
@@ -610,19 +696,26 @@ local function eachGroupFrame(st, fn)
     end
 end
 
--- Re-applies the aura settings to one container (out of combat: layout time).
-local function configureContainer(button, kind)
-    local st = button.auraContainers[kind]
-    local g = Auras.ContainerGeometry(kind, ns.db.auras)
-    if st.appliedKey == g.key and st.zone == button.zones[kind] then return end
+-- Re-applies a geometry to one container (out of combat: layout time). Callers skip unchanged geometry.
+local function reconfigure(st, g)
     st.geom = g
-    local c = st.frame
+    local c, kind = st.frame, st.kind
     frameStep(st, "filter", function() c:SetAuraGroupFilterString(kind, g.filter) end)
     frameStep(st, "max", function() c:SetAuraGroupMaxFrameCount(kind, g.max) end)
     frameStep(st, "group-layout", function() c:SetAuraGroupLayout(kind, groupOptions(st)) end)
     frameStep(st, "flow", function() applyFlow(st) end)
-    frameStep(st, "frames", function() eachGroupFrame(st, function(f) configureFrame(st, f) end) end)
+    if not g.glowOnly then
+        frameStep(st, "frames", function() eachGroupFrame(st, function(f) configureFrame(st, f) end) end)
+    end
     st.appliedKey = g.key
+end
+
+-- Re-applies the aura settings to one party container.
+local function configureContainer(button, kind)
+    local st = button.auraContainers[kind]
+    local g = Auras.ContainerGeometry(kind, ns.db.auras)
+    if st.appliedKey == g.key and st.zone == button.zones[kind] then return end
+    reconfigure(st, g)
 end
 
 local function desiredUnit(button, kind)
@@ -706,6 +799,96 @@ local function setupContainers(button)
         return false
     end
     return true
+end
+
+-- Raid debuff containers ---------------------------------------------------------------------------------------
+-- The raid bars (Frames/RaidFrames.lua) reuse the native container code above: same template, same initializeFrame /
+-- configureFrame / applyMouse (so a button the game creates mid-fight never gets a mouse setter in combat).
+
+-- Pure: geometry of a raid debuff zone. Icons bottom-right growing left, one row, no timer text, the dispel-type
+-- border on, no mouse (the bar underneath keeps hover and clicks; the raid template has the mouse off from creation).
+function Auras.DebuffContainerGeometry(size, max, filter)
+    max = math.max(1, max or 1)
+    local gap = 1
+    local g = {
+        kind = "debuff", size = size, timerH = 0, gap = gap, perRow = max, grow = "left", inside = true,
+        vertical = false, elementHeight = size, padding = { 0, 0, 0, 0 }, anchor = "BOTTOMRIGHT",
+        horizontal = "Left", verticalDir = "Up", max = max, colorBorder = true, mouse = false, compact = true,
+        filter = filter or "HARMFUL|RAID_PLAYER_DISPELLABLE", template = RAID_BUTTON_TEMPLATE,
+    }
+    g.maxLine = max * size + (max - 1) * gap + 0.5
+    g.key = table.concat({ "raid", size, max, g.filter }, "|")
+    return g
+end
+
+-- Pure: geometry of a raid glow container: one invisible carrier button (max 1) that the game shows while the member
+-- has at least one debuff I can dispel. Nothing is wired on it but the glow texture (onInit hook).
+function Auras.GlowContainerGeometry(filter)
+    local g = {
+        kind = "debuff", size = 1, timerH = 0, gap = 0, perRow = 1, grow = "left", inside = true, vertical = false,
+        elementHeight = 1, padding = { 0, 0, 0, 0 }, anchor = "BOTTOMRIGHT", horizontal = "Left", verticalDir = "Up",
+        max = 1, colorBorder = false, mouse = false, glowOnly = true, maxLine = 1.5,
+        filter = filter or "HARMFUL|RAID_PLAYER_DISPELLABLE", template = RAID_GLOW_TEMPLATE,
+    }
+    g.key = table.concat({ "raid-glow", g.filter }, "|")
+    return g
+end
+
+-- Creates one debuff container in `zone` (out of combat). hooks.onInit(frame, index, st) runs for every aura button
+-- the game initialises (also in combat: only non-protected work there). Returns the container state or nil (API
+-- missing or creation failed: logged).
+function Auras.CreateDebuffContainer(button, zone, geom, hooks)
+    if not containerApiPresent() then return nil end
+    local ok, st = pcall(buildContainer, zone, "debuff", geom, hooks)
+    if not ok then
+        containerError("raid-create", st)
+        return nil
+    end
+    st.owner = button
+    return st
+end
+
+function Auras.ConfigureContainer(st, geom)
+    if not st then return end
+    if st.appliedKey == geom.key then return end
+    local ok, err = pcall(reconfigure, st, geom)
+    if not ok then containerError("raid-configure", err) end
+end
+
+function Auras.EachContainerFrame(st, fn)
+    if not st then return end
+    local ok, err = pcall(eachGroupFrame, st, fn)
+    if not ok then containerError("raid-frames", err) end
+end
+
+-- Points a container at a unit token or "none". Same rule as the party containers: SetUnit never runs in combat (the
+-- change is queued and re-checked after combat); out of combat it runs only when the token changes or another player
+-- now sits behind the same token (GUID differs).
+function Auras.SetContainerUnit(st, unit)
+    if not st then return end
+    unit = unit or "none"
+    st.wantUnit = unit
+    if ns.InCombat() then
+        if st.unit ~= unit then
+            ns:AfterCombat("aura-unit-raid-" .. tostring(st.frame), function()
+                Auras.SetContainerUnit(st, st.wantUnit)
+            end, true)
+        end
+        return
+    end
+    local guid = unit ~= "none" and unitGuid(unit) or nil
+    if st.unit ~= unit then
+        frameStep(st, "setunit", function() st.frame:SetUnit(unit) end)
+        st.unit, st.guid = unit, guid
+    elseif unit ~= "none" and guid and st.guid and guid ~= st.guid then
+        frameStep(st, "setunit", function()
+            st.frame:SetUnit("none")
+            st.frame:SetUnit(unit)
+        end)
+        st.guid = guid
+    elseif guid then
+        st.guid = guid
+    end
 end
 
 -- Fallback path: hand-drawn icons that are never updated in combat (aura data is locked there).
@@ -1310,6 +1493,11 @@ end
 -- to the secure unit button; without that API they take no mouse at all there.
 function Auras.Prepare(button)
     if not button.zones then return end
+    -- the mouse setters below are blocked in combat: never run them there (callers are layout-time, this is the guard)
+    if ns.InCombat() then
+        ns:AfterCombat("aura-prepare-" .. tostring(button:GetName() or button.unit), function() Auras.Prepare(button) end, true)
+        return
+    end
     if button.auraContainers then
         for _, kind in ipairs({ "buff", "debuff" }) do
             local ok, err = pcall(configureContainer, button, kind)

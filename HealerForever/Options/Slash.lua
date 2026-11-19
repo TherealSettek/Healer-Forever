@@ -14,13 +14,17 @@ ns.SLASH_COMMANDS = {
     { cmd = "/hf errors [clear|copy]", help = "/hf errors [clear]", desc = "List logged errors, clear them, or copy them" },
     { cmd = "/hf profile", desc = "Show which settings profile is in use" },
     { cmd = "/hf copyaccount", desc = "Copy the account-wide settings into this character (asks to confirm)" },
-    { cmd = "/hf debug buffs", help = "/hf debug buffs | auras | click | click watch | clear", desc = "Explain why each buff button is shown or hidden" },
+    { cmd = "/hf raid [auto|party|raid]", help = "/hf raid", desc = "Show which layout is active and why, or set the layout switching (auto / always party / always raid)" },
+    { cmd = "/hf raid preview [10|20|25|40|off]", help = "/hf raid preview", desc = "Show a fake full raid at your raid position to try the raid options (not clickable, turns off in combat)" },
+    { cmd = "/hf debug buffs", help = "/hf debug buffs | auras | click [raidN] | click watch | raid | clear", desc = "Explain why each buff button is shown or hidden" },
     { cmd = "/hf debug auras", hidden = true, desc = "Show the aura path and what the game returned per unit" },
-    { cmd = "/hf debug click", hidden = true, desc = "Show the click-casting state of your bar" },
+    { cmd = "/hf debug click", hidden = true, desc = "Show the click-casting state of your bar (add raidN for a raid bar, e.g. raid5)" },
     { cmd = "/hf debug click watch", hidden = true, desc = "Print the click state on every modifier change" },
+    { cmd = "/hf debug raid", hidden = true, desc = "Show the raid layout state: active layout and reason, buttons, cells and aliases" },
     { cmd = "/hf debug clear", hidden = true, desc = "Clear the stored debug output" },
     { cmd = "/hf copy", desc = "Open a window with the last debug output and errors to copy" },
     { cmd = "/hf mark [note|clear]", help = "/hf mark [note] | /hf mark clear", desc = "Save a snapshot of this moment for the report (last 5), or clear them" },
+    { cmd = "/hf perf [start [seconds]|stop]", help = "/hf perf", desc = "Show CPU and memory per addon (ours vs the others); start/stop times our own code over a window (default 60 s)" },
     { cmd = "/hf report", desc = "Open the ready-to-email problem report" },
     { cmd = "/hf contact", desc = "Show the support email and open Help & Contact" },
 }
@@ -96,6 +100,45 @@ SlashCmdList["HEALERFOREVER"] = function(msg)
             ns.Report.Mark(arg)
             ns:Print("Marked. Use /hf report or Help & Contact > Report a problem.")
         end
+    elseif cmd == "raid" then
+        local RF = ns.RaidFrames
+        local want = arg:lower()
+        local MODES = { auto = "Auto", party = "Always party", raid = "Always raid" }
+        local pv = want:match("^preview%s*(.-)$")
+        if pv then
+            local RP = ns.RaidPreview
+            local ok, why
+            if pv == "off" then
+                ok, why = RP:SetOn(false)
+            elseif pv == "" then
+                ok, why = RP:Toggle()
+            elseif pv == "on" or RP.ValidSize(pv) then
+                ok, why = RP:SetOn(true, RP.ValidSize(pv))
+            else
+                ns:Print("/hf raid preview [10|20|25|40|off]")
+                return
+            end
+            if not ok then
+                ns:Print(why or "Preview not available.")
+            elseif RP.on then
+                ns:Print("Raid preview ON (" .. RP.size .. " fake players). Not clickable; turns off in combat. /hf raid preview off")
+            else
+                ns:Print("Raid preview off.")
+            end
+            return
+        end
+        if MODES[want] then
+            ns.db.raid.layoutMode = want
+            ns:Changed("raid")
+            -- option changes are coalesced (RF:RequestEvaluate); an explicit command applies now so the status is current
+            if RF and RF.anchor then RF:Evaluate() end
+            ns:Print("Layout switching: " .. MODES[want] .. ".")
+        elseif want ~= "" then
+            ns:Print("/hf raid [auto|party|raid]")
+        end
+        ns:Print(RF and RF:StatusLine() or "raid frames not loaded")
+    elseif cmd == "perf" then
+        ns.Perf.Slash(arg)
     elseif cmd == "report" then
         ns.Report.Show()
     elseif cmd == "contact" then
@@ -134,12 +177,17 @@ SlashCmdList["HEALERFOREVER"] = function(msg)
             ns.UnitFrames.debugClickWatch = not ns.UnitFrames.debugClickWatch
             ns:Print("click watch " .. (ns.UnitFrames.debugClickWatch and "ON: the click state is printed (and stored) on every modifier change (hold Cmd over your bar)" or "off"))
             ran = false
+        elseif sub:match("^click raid%d+$") then
+            local token = sub:match("^click (raid%d+)$")
+            ns.RunDebug("click " .. token, function() ns.UnitFrames:DebugClick(token) end)
+        elseif sub == "raid" then
+            ns.RunDebug("raid", function() ns.RaidFrames:Debug() end)
         elseif sub == "click" then
             ns.RunDebug("click", function() ns.UnitFrames:DebugClick("player") end)
         elseif sub == "buffs" then
             ns.RunDebug("buffs", function() ns.BuffButtons:Debug() end)
         else
-            ns:Print("/hf debug buffs | auras | click | click watch | clear   (add 'copy' to open the copy window)")
+            ns:Print("/hf debug buffs | auras | click [raidN] | click watch | raid | clear   (add 'copy' to open the copy window)")
             ran = false
         end
         if ran then

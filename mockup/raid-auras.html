@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Healer Forever Raid Buffs and Debuffs</title>
+<style>
+:root{--gold:#ffd100;--muted:#9a927e;--oor:#9a9a9a;--hid:#6a86a8}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font-family:"Friz Quadrata TT",Georgia,"Times New Roman",serif;color:#e8e2d0;background:radial-gradient(ellipse at 30% 70%,#3b4a2a 0%,#1f2a18 35%,#0d120b 70%),#0d120b;padding:16px}
+a{color:var(--gold)}
+h1{margin:0 0 4px;font-size:20px;color:var(--gold);font-weight:normal;text-shadow:1px 1px 1px #000}
+.sub{font-size:12px;color:#ffffffa0;margin-bottom:10px}
+.note{background:#1a1408cc;border:1px solid #6a5a2a;border-radius:4px;padding:8px 10px;font-size:12px;color:#e8d9a8;margin:10px 0;line-height:1.5}
+.note code,.cap code,.api code{color:#cfc7aa;font:11px ui-monospace,Menlo,monospace}
+.explain{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:10px}
+.explain h4{margin:0 0 3px;font-size:13px;color:var(--gold);font-weight:normal}
+.explain ul{margin:0;padding-left:18px}
+.panel{background:#000000c8;border:2px solid #8a8a94;border-radius:4px;padding:10px 12px}
+.panel h3{margin:0 0 4px;font-size:14px;color:var(--gold);font-weight:normal}
+.path{font-size:11px;color:var(--muted);margin-bottom:8px}
+.strip{display:flex;flex-wrap:wrap;gap:8px 22px;align-items:center}
+.strip .r{display:flex;align-items:center;gap:8px;font-size:12px}
+.strip .r.prev>label{color:#9fb7d8}
+.strip .v{min-width:14px;color:var(--gold);font-size:11px}
+select{background:#000;color:#e8e2d0;border:2px solid #6a6a74;border-radius:3px;padding:2px 5px;font:12px Georgia,serif}
+input[type=range]{accent-color:#d8a83a;width:90px}
+button.b{background:linear-gradient(#8a1a10,#4a0a06);color:var(--gold);border:2px solid #b8a070;border-radius:4px;font:12px Georgia,serif;padding:3px 10px;cursor:pointer}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:11px;color:#cfc7aa;margin:10px 0 0}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend b{display:inline-block;width:10px;height:10px;border:1px solid #000}
+/* badges */
+.bdg{display:inline-block;font-size:10px;line-height:1.3;padding:0 5px;border-radius:8px;border:1px solid;white-space:nowrap;margin:2px 3px 0 0}
+.bdg.cb{color:#8dff9b;border-color:#3a8a4a;background:#0b2a12}
+.bdg.ooc{color:#ffb070;border-color:#9a5a20;background:#2a1606}
+.bdg.chk{color:#9fc4ff;border-color:#3a5a8a;background:#0b1630}
+/* grid */
+.gwrap{overflow-x:auto;margin-top:12px;padding-bottom:6px}
+.grid{display:grid;gap:8px;width:max-content}
+.hd{font-size:13px;color:var(--gold);text-align:center;padding:4px 6px;background:#000000a0;border:2px solid #6a6a74;border-radius:4px}
+.hd small{display:block;font-size:10px;color:var(--muted)}
+.hd.party{border-color:#5a7a5a}
+.rl{font-size:12px;color:#e8e2d0;background:#000000a0;border:2px solid #4a4a52;border-radius:4px;padding:6px 8px;line-height:1.4}
+.rl b{color:var(--gold);font-weight:normal}
+.rl small{display:block;color:var(--muted);font-size:10px;margin-top:2px}
+.cell{background:#000000a0;border:2px solid #4a4a52;border-radius:4px;padding:6px;min-width:0;display:flex;flex-direction:column}
+.cell.party{border-color:#3a5a3a}
+.scene{background:linear-gradient(160deg,#2c3a20,#1a2414 60%,#10170c);border:1px solid #2a3320;border-radius:3px;padding:10px;display:grid;place-items:center;flex:1}
+.cap{margin-top:5px;font-size:11px;color:#cfc7aa;line-height:1.4}
+.cap .hid{color:var(--muted)}
+/* raid bar (same parts as raid-frames.html) */
+.c{position:relative;flex:none}
+.c .bx{position:absolute;inset:0;overflow:hidden}
+.c .fill{position:absolute;left:0;top:0;bottom:0}
+.c .mana{position:absolute;left:0;right:0;bottom:0;background:#000;border-top:1px solid #000}
+.c .mana i{display:block;height:100%;background:#1e3cff}
+.c .nm,.c .tx{position:absolute;top:50%;transform:translateY(-50%);white-space:nowrap;color:#fff;z-index:3;text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;line-height:1}
+.c .nm{left:3px;overflow:hidden}
+.c .tx{right:3px}
+.c .mk{position:absolute;z-index:5}
+.c .dot{border-radius:50%;border:1px solid #000}
+.c .sq{border:1px solid #000}
+.c .ic{border-radius:2px;display:grid;place-items:center;font-size:7px;font-weight:bold;color:#fff;text-shadow:0 0 2px #000;line-height:1}
+.c .pip{position:absolute;z-index:5;width:4px;height:4px;border:1px solid #000}
+/* party bar (current look) */
+.pbar{width:180px}
+.pbuf,.pdeb{display:flex;gap:2px}
+.pbuf .a,.pdeb .a{display:flex;flex-direction:column;align-items:center}
+.pbuf i,.pdeb i{display:block;width:13px;height:13px;border:1px solid #000;border-radius:2px;font-style:normal;font-size:7px;color:#fff;text-align:center;line-height:11px;text-shadow:0 0 2px #000}
+.pdeb i{width:15px;height:15px;border:2px solid;line-height:11px}
+.pbuf .t,.pdeb .t{font:7px Arial,sans-serif;color:#ffd100;text-shadow:1px 1px 0 #000;line-height:9px}
+.php{position:relative;height:24px;background:#2a0d0d;border:2px solid #000;border-radius:3px;overflow:hidden;margin-top:4px}
+.php .f{position:absolute;left:0;top:0;bottom:0;background-image:linear-gradient(rgba(255,255,255,.38),rgba(255,255,255,.04) 48%,rgba(0,0,0,.28))}
+.php span{position:absolute;top:50%;transform:translateY(-50%);font-size:11px;color:#fff;text-shadow:1px 1px 0 #000,-1px -1px 0 #000;z-index:2;white-space:nowrap}
+.ppw{height:6px;margin-top:2px;background:#111;border:2px solid #000;border-radius:3px;overflow:hidden}
+.ppw i{display:block;height:100%}
+.pdeb{margin-top:4px;min-height:24px}
+.pbadge{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:3;font-size:8px;color:#fff;background:#000000d0;border:1px solid #c86a5a;border-radius:9px;padding:0 5px;white-space:nowrap}
+.pgold{position:absolute;right:3px;top:3px;width:16px;height:16px;border:1px solid #ffd100;border-radius:3px;background:radial-gradient(circle at 40% 35%,#fff3b0,#d8a020 55%,#6a4a08);z-index:3;box-shadow:0 0 5px #ffd100aa;font-size:8px;color:#3a2400;display:grid;place-items:center;font-weight:bold}
+.api{font-size:12px;line-height:1.55}
+.api li{margin-bottom:3px}
+</style>
+</head>
+<body>
+<h1>Healer Forever: buffs and debuffs in the raid view (future feature)</h1>
+<div class="sub">One sample bar per scenario, zoomed so every pixel is readable, for the current <b>party</b> bar and the four raid styles from
+  <a href="raid-frames.html">the raid frames mockup</a>. You play a <b>Paladin</b> (Cleanse: Magic, Poison, Disease). <a href="index.html">Back to the main mockup</a> · <a href="raid-style-d.html">Chosen: style D with my buffs and dispels</a></div>
+
+<div class="note explain">
+  <div><h4>Buffs in raid</h4><ul>
+    <li>By default only <b>your</b> buff matters: <span style="color:#ffd100">gold marker</span> = your blessing is missing, <span style="color:#ff8a1a">orange marker</span> = it is ending (under 60 s or 5 %, the same rebuff rule as the party buff button).</li>
+    <li>Full buff icon rows are <b>off</b> in raid: 40 bars × 6 to 10 icons each is unreadable at 22 to 28 px.</li>
+    <li><b>Other classes' buffs</b> (Fortitude, Mark of the Wild, Arcane Intellect) can show as tiny optional pips in the bottom-left corner: <span style="color:#fff">white</span> Priest, <span style="color:#ff7c0a">orange</span> Druid, <span style="color:#3fc7eb">light blue</span> Mage. Information only (you can't cast them), handy for raid leaders, and can be turned off. <i>This page starts with pips on so you can see them; the addon default would be "Missing + ending".</i></li></ul></div>
+  <div><h4>Debuffs in raid</h4><ul>
+    <li>By default only debuffs <b>you can dispel</b>, at most 2, dispellable-by-you first.</li>
+    <li>Option to also show Curses (other classes dispel them) or everything, including physical debuffs like Mortal Strike. Those are drawn dimmer so they never look like your job.</li>
+    <li>Full names, stacks and time are always in the hover tooltip (all debuffs, like the party tooltip).</li></ul></div>
+  <div><h4>Combat limits on WoW Forever</h4><ul>
+    <li>Aura data can be <b>hidden from addons in combat</b>.</li>
+    <li>Debuff <b>icons drawn by the game's own aura container</b> keep working in combat (that is how party debuffs work now).</li>
+    <li><b>Missing-buff markers update out of combat only</b>: like the party buff button, they hide in combat and are re-checked when combat ends.</li>
+    <li>Colouring the <b>bar edge or a corner square by debuff type</b> needs the type in our code: <b>needs checking in game</b>.</li>
+    <li>Each marker below has a badge: <span class="bdg cb">works in combat</span><span class="bdg ooc">out of combat only</span><span class="bdg chk">needs checking in game</span></li></ul></div>
+</div>
+
+<div class="panel" id="panel">
+  <h3>Options &gt; Raid Layout &gt; Buffs and debuffs</h3>
+  <div class="path">These controls map 1:1 to future raid-layout options (saved separately from the party settings). They change the four raid columns live. The party column always shows the current party look and is not affected.</div>
+  <div class="strip">
+    <div class="r"><label>Buffs</label><select data-k="buffs">
+      <option value="off">Off</option><option value="missing">Only missing mine</option><option value="ending">Missing + ending (mine)</option><option value="pips">Missing + ending + other classes' pips</option></select></div>
+    <div class="r"><label>Debuffs</label><select data-k="debuffs">
+      <option value="off">Off</option><option value="mine">Only dispellable by me</option><option value="anydisp">Any dispellable (Curse dimmed)</option><option value="all">All (incl. physical, dimmed)</option></select></div>
+    <div class="r"><label>Max debuff icons</label><input type="range" data-k="maxd" min="0" max="3"><span class="v" data-v="maxd"></span></div>
+    <div class="r"><label>Buff marker</label><select data-k="bmark">
+      <option value="style">Style default</option><option value="dot">Dot</option><option value="square">Corner square</option><option value="icon">Small icon</option></select></div>
+    <div class="r prev"><label>Zoom (mockup only)</label><select data-k="zoom"><option value="2">2×</option><option value="3">3×</option><option value="4">4×</option></select></div>
+    <div class="r"><button class="b" id="reset" type="button">Reset defaults</button></div>
+  </div>
+  <div class="legend" id="legend"></div>
+</div>
+
+<div class="gwrap"><div class="grid" id="grid"></div></div>
+
+<div class="panel" style="margin-top:12px">
+  <h3>How it would be built, and the WoW API limits</h3>
+  <ul class="api">
+    <li><b>Debuff icons</b> (A, D, party): <code>CreateFrame("AuraContainer", nil, bar, "CustomAuraContainerTemplate")</code> with <code>SetUnit(unit)</code> and one <code>AddAuraGroup</code> per priority:
+      first <code>"HARMFUL|RAID_PLAYER_DISPELLABLE"</code> (dispellable by me), then <code>"HARMFUL"</code> for the dimmed rest when the option asks for it. The game draws, sorts and updates them in combat, with the
+      dispel-type border from <code>Enum.CustomAuraButtonDispelTypeTextureStyle</code> (the same path the party bars use today). <b>Check in game:</b> whether two groups on one container show a Magic debuff twice, and whether the second group can be desaturated
+      (<code>Icon:SetDesaturated(true)</code> in the button template) or only dimmed with <code>SetAlpha</code>. "Any dispellable" (Curse but not physical) has no game filter I know of: that mode needs our own type check, so it is "needs checking".</li>
+    <li><b>Type-coloured edge (B) and corner squares (C)</b>: four 2 px <code>Interface\Buttons\WHITE8X8</code> strips or a 6 px WHITE8X8 square, tinted by type. In combat the type may be secret; a colour curve
+      (<code>C_CurveUtil.CreateColorCurve</code> keyed on <code>Enum.SpellDispelType</code>, like the party icon border) could tint it without reading it, if the game hands us a curve-ready value for raid units. Unverified, so "needs checking". Fallback: one game-drawn icon.</li>
+    <li><b>My missing/ending blessing</b>: computed from the aura list out of combat only (<code>PLAYER_REGEN_ENABLED</code>, <code>UNIT_AURA</code> while out of combat), exactly like the party buff button. In combat the marker hides. Gold dot:
+      <code>Interface\COMMON\Indicator-Yellow</code> (from memory) or a tinted WHITE8X8 circle mask; small icon: the blessing's spell icon from <code>C_Spell.GetSpellTexture</code> with a 1 px tinted WHITE8X8 border.</li>
+    <li><b>Other classes' pips</b>: three 4 px WHITE8X8 textures (vertex colour = class colour from <code>RAID_CLASS_COLORS</code>), same out-of-combat check. Only buffs that somebody in the raid can actually cast are checked (no Druid in the raid = no orange pip), and Arcane Intellect only for mana users.</li>
+    <li><b>Dead / ghost / offline</b>: all buff and debuff markers hide (<code>UnitIsDeadOrGhost</code>). <b>Out of range</b>: the whole frame dims (<code>SetAlphaFromBoolean</code> from <code>UnitInRange</code>), so the markers dim with it; there is no line of sight check for friendly units.</li>
+    <li>All markers are pre-created per button and only shown or hidden, so nothing is created in combat. Updates are event-driven (<code>UNIT_AURA</code> with updateInfo), never polled.</li>
+  </ul>
+</div>
+
+<script>
+'use strict';
+const CC={Warrior:'#C69B6D',Paladin:'#F48CBA',Hunter:'#AAD372',Rogue:'#FFF468',Priest:'#FFFFFF',Shaman:'#0070DD',Mage:'#3FC7EB',Warlock:'#8788EE',Druid:'#FF7C0A'};
+const DT={Magic:'#3399ff',Curse:'#9900ff',Disease:'#996600',Poison:'#009900',None:'#cc0000'};
+const DEBN={Magic:'Shadow Word: Pain',Curse:'Curse of Tongues',Disease:'Fevered Plague',Poison:'Deadly Poison',None:'Mortal Strike'};
+const MINE=['Magic','Poison','Disease']; // Paladin Cleanse
+const PRIO={Magic:0,Poison:0,Disease:0,Curse:1,None:2};
+const BLESS={Warrior:'Might',Rogue:'Might',Hunter:'Might',Paladin:'Wisdom',Priest:'Wisdom',Druid:'Wisdom',Mage:'Wisdom',Warlock:'Kings',Shaman:'Wisdom'};
+const MANA=['Paladin','Hunter','Priest','Druid','Mage','Warlock','Shaman'];
+const OTHER={fort:{c:'#ffffff',n:'Power Word: Fortitude',w:'Priest',l:'F'},motw:{c:'#ff7c0a',n:'Mark of the Wild',w:'Druid',l:'M'},ai:{c:'#3fc7eb',n:'Arcane Intellect',w:'Mage',l:'A'}};
+const BUFFC={Might:'#f8b04a',Wisdom:'#9ad0ff',Kings:'#e8d07a',fort:'#ffffff',motw:'#ff9a4a',ai:'#7ad8ff'};
+
+const STYLES={
+ A:{t:'A. Compact current',w:72,h:28,flat:false,mana:true,health:'none',mute:false,bmark:'icon',deb:'icon'},
+ B:{t:'B. Minimal',w:60,h:22,flat:true,mana:false,health:'deficit',mute:false,bmark:'dot',deb:'border'},
+ C:{t:'C. Healer focus',w:72,h:28,flat:false,mana:true,health:'none',mute:false,bmark:'square',deb:'square'},
+ D:{t:'D. Hurt stands out',w:64,h:24,flat:false,mana:false,health:'deficit',mute:true,bmark:'dot',deb:'icon'},
+};
+// m: n, cls, role, hp, max, my:'ok'|'miss'|'end', oth:[missing other buffs], deb:[types], dead, oor
+const SC=[
+ {k:'1',t:'Fully buffed, healthy',d:'Every buff up, no debuffs.',m:{n:'Kaelith',cls:'Rogue',role:'D',hp:100,max:3700,my:'ok',oth:[],deb:[]}},
+ {k:'2',t:'Missing MY blessing',d:'Blessing of Wisdom is gone.',m:{n:'Seraphine',cls:'Paladin',role:'H',hp:100,max:4300,my:'miss',oth:[],deb:[]}},
+ {k:'3',t:'My blessing ending soon',d:'Blessing of Kings: 42 s left (rebuff under 60 s / 5 %).',m:{n:'Duskwhisper',cls:'Warlock',role:'D',hp:72,max:3800,my:'end',oth:[],deb:[]}},
+ {k:'4',t:'Missing OTHER classes\' buffs',d:'My blessing is up; Fortitude, Mark of the Wild and Arcane Intellect are missing.',m:{n:'Saelis',cls:'Warlock',role:'D',hp:100,max:3800,my:'ok',oth:['fort','motw','ai'],deb:[]}},
+ {k:'5a',t:'Dispellable by me: Magic',d:DEBN.Magic+' (Magic).',m:{n:'Ironhide',cls:'Warrior',role:'T',hp:86,max:8200,my:'ok',oth:[],deb:['Magic']}},
+ {k:'5b',t:'Dispellable by me: Poison',d:DEBN.Poison+' (Poison).',m:{n:'Halvard',cls:'Paladin',role:'H',hp:90,max:4400,my:'ok',oth:[],deb:['Poison']}},
+ {k:'5c',t:'Dispellable by me: Disease',d:DEBN.Disease+' (Disease).',m:{n:'Grimtusk',cls:'Warrior',role:'D',hp:80,max:5600,my:'ok',oth:[],deb:['Disease']}},
+ {k:'6',t:'Curse (I can\'t dispel)',d:DEBN.Curse+'. Mages and Druids remove curses, Paladins can\'t.',m:{n:'Sylvara',cls:'Mage',role:'D',hp:100,max:3300,my:'ok',oth:[],deb:['Curse']}},
+ {k:'7',t:'Non-dispellable (physical)',d:'Mortal Strike: no dispel type, nobody can remove it.',m:{n:'Brakkor',cls:'Warrior',role:'T',hp:58,max:8900,my:'ok',oth:[],deb:['None']}},
+ {k:'8',t:'Several debuffs at once',d:'Magic + Poison + Curse + Mortal Strike.',m:{n:'Fenwick',cls:'Mage',role:'D',hp:64,max:3200,my:'ok',oth:[],deb:['None','Curse','Poison','Magic']}},
+ {k:'9',t:'Worst case clutter',d:'18 % health + missing my blessing + a Magic debuff.',m:{n:'Corvane',cls:'Rogue',role:'D',hp:18,max:3700,my:'miss',oth:[],deb:['Magic']}},
+ {k:'10a',t:'Dead, missing blessing',d:'Died while the blessing was missing.',m:{n:'Vexmora',cls:'Warlock',role:'D',hp:0,max:3800,my:'miss',oth:[],deb:['Magic'],dead:1}},
+ {k:'10b',t:'Out of range, missing blessing',d:'45 yd away, blessing missing, Poison on them.',m:{n:'Nyssa',cls:'Hunter',role:'D',hp:85,max:4000,my:'miss',oth:['fort'],deb:['Poison'],oor:1}},
+];
+const DEF={buffs:'pips',debuffs:'mine',maxd:2,bmark:'style',zoom:'3'};
+let O={...DEF};
+const fmtK=v=>v>=1000?(v/1000).toFixed(1)+'k':String(v);
+const B=(k,t)=>({k,t});
+
+function debList(m){
+  if(O.debuffs==='off')return [];
+  return m.deb.filter(t=>O.debuffs==='all'||MINE.includes(t)||(O.debuffs==='anydisp'&&t!=='None'))
+    .map((t,i)=>({t,i,mine:MINE.includes(t)})).sort((a,b)=>PRIO[a.t]-PRIO[b.t]||b.i-a.i);
+}
+function hiddenDebs(m,shown){
+  const s=new Set(shown.map(d=>d.t));return m.deb.filter(t=>!s.has(t));
+}
+function dimC(c){return `color-mix(in srgb,${c} 45%,#6a6a6a)`}
+
+// ---- raid bar ----
+function raidBar(m,k){
+  const S=STYLES[k],w=S.w,h=S.h,cc=CC[m.cls],down=!!m.dead,cap=[],bd=[];
+  const bmark=O.bmark==='style'?S.bmark:O.bmark;
+  const fs=Math.max(8,Math.min(12,Math.round(h*0.42)));
+  let bx=S.flat?'border:1px solid #000;background:#1c0909;':'border:1px solid #8a8aa0;border-radius:2px;box-shadow:0 0 0 1px #000;background:#2a0d0d;';
+  const parts=[];
+  // fill
+  const mute=S.mute&&m.hp>=95&&!down;
+  const fc=mute?`color-mix(in srgb,${cc} 38%,#2a2a2a)`:cc;
+  const gloss=S.flat?'':'background-image:linear-gradient(rgba(255,255,255,.38),rgba(255,255,255,.04) 48%,rgba(0,0,0,.28));';
+  parts.push(`<div class="fill" style="width:${down?0:m.hp}%;background-color:${fc};${gloss}"></div>`);
+  if(down)cap.push(`Empty ${m.cls} bar, red "DEAD"`);
+  else cap.push(`${m.cls} bar at ${m.hp} %${mute?' (muted: full health)':''}`);
+  const showMana=S.mana&&m.role==='H';
+  if(showMana)parts.push(`<div class="mana" style="height:3px"><i style="width:${down?0:64}%"></i></div>`);
+  const manaOff=showMana?3:0;
+  // debuffs
+  let deb=down?[]:debList(m);
+  const maxd=+O.maxd;
+  let mode=S.deb;if(mode==='icon'&&maxd===0)mode='border';
+  let shown=[];
+  let iconsR=0;
+  if(deb.length){
+    if(mode==='icon'){
+      shown=deb.slice(0,maxd);const isz=Math.max(8,Math.min(14,h-8));
+      shown.forEach((d,j)=>{const c=d.mine?DT[d.t]:dimC(DT[d.t]);
+        parts.push(`<div class="mk ic" style="right:${2+j*(isz+1)}px;top:${(h-isz)/2-(showMana?1:0)}px;width:${isz}px;height:${isz}px;border:1px solid ${c};background:radial-gradient(circle at 40% 35%,${DT[d.t]},#111 80%);${d.mine?'':'filter:grayscale(.75);opacity:.6'}">${d.t==='None'?'MS':d.t[0]}</div>`)});
+      iconsR=shown.length*(isz+1)+2;
+      cap.push(shown.map(d=>`${d.mine?'':'dimmed '}${d.t==='None'?'Mortal Strike':d.t} icon`).join(', ')+' on the right');
+      bd.push(B('cb','Debuff icons (game-drawn)'));
+      if(shown.some(d=>!d.mine))bd.push(B('chk','Dimmed non-mine icons'));
+    }else if(mode==='border'){
+      shown=deb.slice(0,1);const d=shown[0],c=d.mine?DT[d.t]:dimC(DT[d.t]);
+      if(S.flat)bx+=`box-shadow:inset 0 0 0 2px ${c}${d.mine?`,inset 0 0 6px 2px ${c}`:''};`;
+      else bx+=`border:2px solid ${c};box-shadow:0 0 0 1px #000;`;
+      cap.push(`${d.mine?'':'dull '}${d.t==='None'?'red (physical)':d.t} coloured ${S.flat?'inner edge':'border'}`);
+      bd.push(B('chk','Type-coloured edge'));
+    }else if(mode==='square'){
+      shown=deb.slice(0,maxd);
+      shown.forEach((d,j)=>parts.push(`<div class="mk sq" style="right:${1+j*7}px;bottom:${1+manaOff}px;width:6px;height:6px;background:${d.mine?DT[d.t]:dimC(DT[d.t])}"></div>`));
+      if(shown.length){cap.push(shown.map(d=>`${d.mine?'':'dull '}${d.t==='None'?'red':d.t}`).join(' + ')+' square'+(shown.length>1?'s':'')+' bottom-right');bd.push(B('chk','Type-coloured corner squares'))}
+    }
+  }
+  // buffs
+  const bl=[];
+  if(!down&&O.buffs!=='off'){
+    if(m.my==='miss')bl.push({c:'#ffd100',l:BLESS[m.cls][0],what:'gold',why:`missing your Blessing of ${BLESS[m.cls]}`});
+    if(m.my==='end'&&O.buffs!=='missing')bl.push({c:'#ff8a1a',l:BLESS[m.cls][0],what:'orange',why:`your Blessing of ${BLESS[m.cls]} is ending`});
+  }
+  const where={dot:'dot top-right',square:'square top-left',icon:'blessing icon top-right'}[bmark];
+  bl.forEach((b,j)=>{
+    if(bmark==='dot')parts.push(`<div class="mk dot" style="right:${2+j*7}px;top:2px;width:6px;height:6px;background:radial-gradient(circle at 35% 30%,#fff,${b.c} 55%);box-shadow:0 0 3px ${b.c}"></div>`);
+    else if(bmark==='square')parts.push(`<div class="mk sq" style="left:${1+j*7}px;top:1px;width:6px;height:6px;background:${b.c}"></div>`);
+    else{const s=Math.max(8,Math.min(12,h-12));parts.push(`<div class="mk ic" style="right:${iconsR+2+j*(s+1)}px;top:1px;width:${s}px;height:${s}px;border:1px solid ${b.c};background:radial-gradient(circle at 40% 35%,#fff3b0,${BUFFC[BLESS[m.cls]]} 50%,#5a3a08)">${s>=10?b.l:''}</div>`)}
+    cap.push(`${b.what} ${where} = ${b.why}`);
+  });
+  if(bl.length)bd.push(B('ooc',bmark==='dot'?'My-buff dot':bmark==='square'?'My-buff square':'My-buff icon'));
+  if(!down&&O.buffs==='pips'&&m.oth.length){
+    const list=m.oth.filter(x=>x!=='ai'||MANA.includes(m.cls));
+    list.forEach((x,j)=>parts.push(`<div class="pip" style="left:${2+j*5}px;bottom:${2+manaOff}px;background:${OTHER[x].c};${bmark==='square'?'':'border-radius:50%'}"></div>`));
+    cap.push(list.map(x=>OTHER[x].c==='#ffffff'?'white':x==='motw'?'orange':'light blue').join(', ')+' pips bottom-left = missing '+list.map(x=>OTHER[x].n).join(', '));
+    bd.push(B('ooc','Other-buff pips'));
+  }
+  // text
+  let tx='',txc='#fff';
+  if(m.dead){tx=m.oor?"CAN'T RES":'DEAD';txc='#e04040'}
+  else if(S.health==='deficit'&&m.hp<100){tx='−'+fmtK(Math.round(m.max*(100-m.hp)/100));txc='#ff9090';cap.push(`red ${tx} deficit`)}
+  const tfs=down?Math.max(7,fs-2):fs;
+  const markR=bmark==='dot'&&bl.length?bl.length*7+2:bmark==='icon'&&bl.length?bl.length*13:0;
+  const txR=3+iconsR+(m.dead?0:markR);
+  if(tx)parts.push(`<div class="tx" style="font-size:${tfs}px;color:${txc};right:${txR}px">${tx}</div>`);
+  const nm=m.n.length>7?m.n.slice(0,7):m.n;
+  const avail=w-6-iconsR-(tx?tx.length*tfs*0.55+3:0)-(tx?0:markR);
+  parts.push(`<div class="nm" style="font-size:${fs}px;color:${down?'#9a9a9a':'#fff'};max-width:${Math.max(10,avail)}px;${bmark==='square'&&bl.length?'left:9px':''}">${nm}</div>`);
+  let wrap=`width:${w}px;height:${h}px;`;
+  if(m.oor){wrap+='opacity:.5;outline:1px dashed var(--oor);outline-offset:1px;';cap.push('whole frame dimmed to 50 % with a dashed outline, markers dim with it')}
+  // hidden notes
+  const hid=down?m.deb.concat(m.my!=='ok'?['buff']:[]):hiddenDebs(m,shown);
+  let hnote='';
+  if(down&&(m.deb.length||m.my!=='ok'))hnote='All buff and debuff markers hidden (dead: any click resurrects).';
+  else if(hid.length){
+    const notMine=hid.filter(t=>deb.every(d=>d.t!==t));
+    const cut=hid.filter(t=>deb.some(d=>d.t===t));
+    const p=[];
+    if(notMine.length)p.push(notMine.map(t=>t==='None'?'Mortal Strike':t).join(', ')+' hidden by the "'+({off:'Off',mine:'Only dispellable by me',anydisp:'Any dispellable',all:'All'})[O.debuffs]+'" debuff setting');
+    if(cut.length)p.push(cut.map(t=>t==='None'?'Mortal Strike':t).join(', ')+(mode==='border'?' not shown (one edge colour only)':` cut (max ${maxd})`));
+    hnote=p.join('; ')+'. Still listed in the tooltip.';
+  }
+  if(!down&&O.buffs==='off'&&m.my!=='ok')hnote+=(hnote?' ':'')+'Blessing marker off (Buffs: Off).';
+  if(!down&&m.my==='end'&&O.buffs==='missing')hnote+=(hnote?' ':'')+'Ending blessing not marked (Buffs: only missing).';
+  if(!down&&m.oth.length&&O.buffs!=='pips')hnote+=(hnote?' ':'')+'Other classes\' missing buffs not shown (pips are off).';
+  if(m.dead)bd.length=0;
+  if(!bd.length)bd.push(B('cb','Bar, name, health'));
+  const html=`<div class="c" style="${wrap}"><div class="bx" style="${bx}">${parts.join('')}</div></div>`;
+  return {html,cap:cap.join('; ')+'.',hnote,bd};
+}
+
+// ---- party bar (current look, its own settings) ----
+function partyBar(m){
+  const cap=[],bd=[],down=!!m.dead;
+  const buffs=[];
+  if(m.my!=='miss')buffs.push({k:BLESS[m.cls],t:m.my==='end'?'42s':'52m',end:m.my==='end'});
+  if(!m.oth.includes('fort'))buffs.push({k:'fort',t:'26m'});
+  if(!m.oth.includes('motw'))buffs.push({k:'motw',t:'47m'});
+  if(MANA.includes(m.cls)&&!m.oth.includes('ai'))buffs.push({k:'ai',t:'21m'});
+  const bufHtml=down?'':buffs.map(b=>`<span class="a"><i style="background:radial-gradient(circle at 40% 35%,${BUFFC[b.k]},#222 85%)">${(b.k[0]).toUpperCase()}</i><span class="t" style="${b.end?'color:#ff6a3a':''}">${b.t}</span></span>`).join('');
+  if(!down){cap.push(`${buffs.length} buff icon${buffs.length===1?'':'s'} above with timers${buffs.some(b=>b.end)?' (blessing timer 42s in orange)':''}`);bd.push(B('cb','Buff + debuff icons (game-drawn)'))}
+  const debs=down?[]:[...m.deb].map((t,i)=>({t,i,mine:MINE.includes(t)})).sort((a,b)=>PRIO[a.t]-PRIO[b.t]||b.i-a.i);
+  const debHtml=debs.map(d=>`<span class="a"><i style="border-color:${DT[d.t]};background:radial-gradient(circle,${DT[d.t]},#111 85%)">${d.t==='None'?'MS':d.t[0]}</i><span class="t">${8+d.t.length}s</span></span>`).join('');
+  if(debs.length){cap.push(`${debs.length} debuff icon${debs.length>1?'s':''} below with dispel-colour borders (yours first)`);bd.push(B('cb','Dispel-colour icon border'))}
+  const gold=!down&&(m.my==='miss'||m.my==='end');
+  if(gold){cap.push(`gold buff button on the bar (${m.my==='miss'?'blessing missing':'blessing ending'})${m.oor?', disarmed and dimmed (out of range)':''}`);bd.push(B('ooc','Gold buff button (hidden in combat)'))}
+  if(!down&&m.oth.length)cap.push('missing '+m.oth.map(x=>OTHER[x].n).join(', ')+': only noticeable by the gap in the buff row');
+  const hpv=down?'':String(Math.round(m.max*m.hp/100));
+  if(down)cap.push('red "DEAD", no icons');
+  if(m.oor)cap.push('"OUT OF RANGE" badge, dashed border, slightly dimmed');
+  const html=`<div class="pbar" style="${m.oor?'opacity:.75':''}">
+    <div class="pbuf" style="min-height:22px">${bufHtml}</div>
+    <div class="php" style="${m.oor?'border:2px dashed #8a8a8a':''}"><div class="f" style="width:${down?0:m.hp}%;background-color:${CC[m.cls]}"></div>
+      <span style="left:5px">${m.n}</span>${down?'<span style="right:5px;color:#e04040;font-weight:bold">DEAD</span>':`<span style="right:${gold?24:5}px">${hpv}</span>`}
+      ${gold?`<div class="pgold" style="${m.oor?'filter:grayscale(.8);opacity:.5':''}">${BLESS[m.cls][0]}</div>`:''}${m.oor?'<div class="pbadge">OUT OF RANGE</div>':''}</div>
+    <div class="ppw"><i style="width:${down?0:m.role==='H'?64:80}%;background:${m.cls==='Warrior'?'#ff0000':m.cls==='Rogue'?'#ffff00':'#0000ff'}"></i></div>
+    <div class="pdeb">${debHtml}</div></div>`;
+  if(!bd.length)bd.push(B('cb','Bar, name, health'));
+  return {html,cap:cap.join('; ')+'.',hnote:'',bd};
+}
+
+function badges(bd){
+  const lab={cb:'works in combat',ooc:'out of combat only',chk:'needs checking in game'};
+  return bd.map(b=>`<span class="bdg ${b.k}">${b.t}: ${lab[b.k]}</span>`).join('');
+}
+function draw(){
+  const Z=+O.zoom;
+  const cols=['party','A','B','C','D'];
+  const pw=Math.ceil(184*Z*0.6)+20, rw=Math.ceil(72*Z)+20;
+  const g=document.getElementById('grid');
+  g.style.gridTemplateColumns=`170px ${Math.max(pw,240)}px repeat(4,${Math.max(rw,220)}px)`;
+  let h='<div class="hd">Scenario</div><div class="hd party">Party (current)<small>its own settings · shown at '+(Z*0.6).toFixed(1)+'×</small></div>'+
+    ['A','B','C','D'].map(k=>`<div class="hd">${STYLES[k].t}<small>${STYLES[k].w} × ${STYLES[k].h} px · shown at ${Z}×</small></div>`).join('');
+  for(const s of SC){
+    h+=`<div class="rl"><b>${s.k}. ${s.t}</b><small>${s.d}</small></div>`;
+    for(const c of cols){
+      const r=c==='party'?partyBar(s.m):raidBar(s.m,c);
+      const z=c==='party'?Z*0.6:Z;
+      h+=`<div class="cell ${c==='party'?'party':''}" data-sc="${s.k}" data-col="${c}"><div class="scene"><div style="zoom:${z}">${r.html}</div></div>
+        <div class="cap">${r.cap}${r.hnote?` <span class="hid">${r.hnote}</span>`:''}</div><div>${badges(r.bd)}</div></div>`;
+    }
+  }
+  g.innerHTML=h;
+}
+function legend(){
+  const L=[['background:#ffd100;border-radius:50%','My blessing missing'],['background:#ff8a1a;border-radius:50%','My blessing ending'],
+    ['background:#fff;width:6px;height:6px','Fortitude missing (Priest)'],['background:#ff7c0a;width:6px;height:6px','Mark of the Wild missing (Druid)'],['background:#3fc7eb;width:6px;height:6px','Arcane Intellect missing (Mage)'],
+    ...Object.entries(DT).map(([t,c])=>[`background:${c}`,(t==='None'?'Physical':t)+(MINE.includes(t)?' (you dispel)':' (not by you, dimmed)')])];
+  document.getElementById('legend').innerHTML=L.map(([s,t])=>`<span><b style="${s}"></b>${t}</span>`).join('');
+}
+const PN=document.getElementById('panel');
+function sync(){
+  PN.querySelectorAll('[data-k]').forEach(el=>{el.value=O[el.dataset.k]});
+  PN.querySelectorAll('[data-v]').forEach(el=>{el.textContent=O[el.dataset.v]});
+}
+PN.addEventListener('input',e=>{const k=e.target.dataset.k;if(!k)return;O[k]=e.target.type==='range'?+e.target.value:e.target.value;sync();draw()});
+document.getElementById('reset').addEventListener('click',()=>{O={...DEF};sync();draw()});
+try{localStorage.removeItem('hf-raid-auras')}catch(_){}
+sync();legend();draw();
+</script>
+</body>
+</html>

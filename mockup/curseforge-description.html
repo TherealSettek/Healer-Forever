@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CurseForge Description Preview</title>
+<style>
+  :root { --bg:#0d0d0d; --panel:#1b1b1b; --text:#d8d8d8; --muted:#9a9a9a; --head:#f1f1f1; --accent:#f16436; --line:#2c2c2c; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.6 -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .bar { background:#000; padding:10px 24px; color:var(--muted); font-size:13px; border-bottom:1px solid var(--line); }
+  .bar b { color:var(--accent); }
+  .wrap { max-width:900px; margin:24px auto; padding:0 16px; }
+  .card { background:var(--panel); border-radius:8px; padding:28px 32px; }
+  h1 { color:var(--head); font-size:28px; margin:0 0 8px; }
+  h2 { color:var(--head); font-size:20px; margin:28px 0 8px; border-bottom:1px solid var(--line); padding-bottom:4px; }
+  ul { padding-left:22px; } li { margin:4px 0; }
+  code { background:#000; padding:1px 5px; border-radius:3px; }
+  hr { border:0; border-top:1px solid var(--line); margin:28px 0; }
+  p.shot { text-align:center; margin:14px 0 6px; }
+  p.shot img { max-width:100%; height:auto; border:1px solid #333; border-radius:4px; }
+  p.cap { text-align:center; color:var(--muted); font-size:13px; margin:0 0 10px; font-style:italic; }
+  .note { max-width:900px; margin:0 auto 24px; padding:0 16px; color:var(--muted); font-size:13px; }
+</style>
+</head>
+<body>
+<div class="bar"><b>PREVIEW</b> — how the CurseForge description would look with the screenshots. Not published. Images here are local; on CurseForge they'd come from the Media tab.</div>
+<div class="wrap"><div class="card">
+
+<h1>Healer Forever</h1>
+<p>Party frames made for healing. See your group's health, mana, range and debuffs at a glance, heal with a mouse click, and get reminded when someone is missing a buff.</p>
+
+<p class="shot"><img src="screenshots/bars-party-preview.png" alt="Party frames" width="640"></p>
+<p class="cap">A 5-player party: heal prediction, a missing-blessing button, dispel colours, out of range and a dead player.</p>
+
+<h2>Party frames</h2>
+<ul>
+<li>Frames for you, your party and pets: horizontal (pets below) or vertical (pets to the right), movable as a group.</li>
+<li>Class-coloured health bars with a power bar, heal prediction and overheal, and a border style you can adjust.</li>
+<li>Range at a glance: <strong>OUT OF RANGE</strong> and <strong>NOT VISIBLE</strong> badges, a green edge on players you can heal, and <strong>CAN'T RESURRECT</strong> on dead players who are out of reach.</li>
+<li>Target glow, aggro border, dead / ghost / offline states and an optional low-health pulse.</li>
+</ul>
+<p class="shot"><img src="screenshots/options-frames-bars.png" alt="Frames &amp; Bars options" width="640"></p>
+<p class="cap">Frames &amp; Bars options. Changes show on the frames straight away.</p>
+
+<h2>Click-casting</h2>
+<ul>
+<li>Bind spells to mouse buttons 1–8 with Shift, Ctrl, Alt (Option) and Cmd on Mac.</li>
+<li>Casts only ever land on the player you clicked. If they are out of range or sight, nothing is cast, and nothing falls back onto you.</li>
+<li>Clicking a dead player casts your class's resurrection spell.</li>
+<li>The bar tooltip lists only the bindings for the modifier keys you are holding.</li>
+</ul>
+<p class="shot"><img src="screenshots/options-click-casting.png" alt="Click-casting options" width="640"></p>
+<p class="cap">Click-casting: a spell for each mouse button and modifier.</p>
+
+<h2>Buff reminders</h2>
+<ul>
+<li>Pick buffs per class and role (Tank / Healer / DPS) from your own class's buffs: Paladin blessings, Priest Fortitude / Spirit / Shadow Protection, Mage Arcane Intellect with Dampen or Amplify Magic, Druid Mark of the Wild / Thorns.</li>
+<li>A button appears on a player who is missing a buff, or whose buff is running out (default: under 5% left). Left-click casts the buff; right-click casts the group version.</li>
+<li><strong>Role buffs</strong> cover special cases, such as a tank-only buff.</li>
+<li><strong>Smart buff</strong> and <strong>Tank buff</strong> keybinds: one key press casts the next missing buff (one cast per press).</li>
+</ul>
+<p class="shot"><img src="screenshots/options-buff-presets.png" alt="Buff presets" width="640"></p>
+<p class="cap">Buff presets: which of your buffs each class and role should get.</p>
+
+<h2>Buffs and debuffs</h2>
+<ul>
+<li>Buffs and debuffs are drawn by the game itself, so they stay accurate in combat and dispelled debuffs disappear at once.</li>
+<li>Dispel-type colours, timers, adjustable positions, sizes and icons per row, and the game's own tooltip when you hover an icon.</li>
+</ul>
+<p class="shot"><img src="screenshots/options-buffs-debuffs.png" alt="Buffs &amp; Debuffs options" width="640"></p>
+<p class="cap">Buffs &amp; Debuffs options.</p>
+
+<h2>Minimap</h2>
+<ul>
+<li>A minimap button with status badges: missing buffs, the lock state and your active preset.</li>
+<li>Party members shown as class-coloured orbs, with an X marking where a player died.</li>
+</ul>
+<p class="shot"><img src="screenshots/options-minimap.png" alt="Minimap options" width="640"></p>
+<p class="cap">Minimap options.</p>
+
+<h2>Help built in</h2>
+<ul>
+<li><strong>Help &amp; Contact</strong> tab with all commands, quick start tips, and a <strong>Report a problem</strong> button that collects everything needed for a bug report, ready to copy.</li>
+<li>Type <code>/hf</code> to open the options.</li>
+</ul>
+
+<h2>Notes</h2>
+<ul>
+<li>Made for WoW Forever.</li>
+<li>Settings are saved per character.</li>
+<li>Nothing is cast automatically: every cast is your own click or key press.</li>
+<li>Addons can't detect line of sight to friendly players.</li>
+</ul>
+<hr>
+<p><strong>Problems or ideas?</strong> Use <strong>Help &amp; Contact → Report a problem</strong> in game, or write to <strong>healer.forever.trtg@gmail.com</strong>.</p>
+<p>© 2026 trtg. All rights reserved.</p>
+
+</div></div>
+<p class="note">Not used here: options-general.png and options-class-spells.png. They could go in the Media gallery only.</p>
+</body>
+</html>

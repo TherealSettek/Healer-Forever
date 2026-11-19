@@ -9,6 +9,7 @@ M.errors = {}       -- errors caught inside event/script dispatch
 M.undefined = {}    -- set of undefined global names accessed
 M.violations = {}   -- SetAttribute etc. on secure frames during combat lockdown
 M.softViolations = {}
+M.blocked = {}     -- ADDON_ACTION_BLOCKED calls (mouse setters on aura buttons in combat)
 M.printed = {}
 M.timers = {}
 M.tickers = {}
@@ -32,6 +33,38 @@ local SECRET_MT = {
     __tostring = function() error("attempt to convert a secret value to a string", 2) end,
 }
 function M.newSecret() return setmetatable({}, SECRET_MT) end
+
+-- Plain number curve (C_CurveUtil.CreateCurve): records type and points ({ {x, y} }); Evaluate(x) like the client for
+-- Step (the point with the largest x <= input; below the first point -> the first point) and Linear (interpolated).
+-- isFloat marks it so UnitHealthPercent(unit, p, curve) can tell it from a colour curve (secret mode: a secret number).
+M.floatCurves = {}
+function M.newFloatCurve(obj)
+    local curve = obj or {}
+    curve.points = curve.points or {}
+    curve.isFloat = true
+    curve.SetType = function(self, t) self.curveType = t; if self.config then self.config.SetType = { t } end end
+    curve.AddPoint = function(self, x, y) self.points[#self.points + 1] = { x, y } end
+    curve.Evaluate = function(self, x)
+        local pts = self.points
+        if #pts == 0 or type(x) ~= "number" then return 0 end
+        if self.curveType == 2 then
+            local best
+            for _, p in ipairs(pts) do if p[1] <= x + 1e-9 and (not best or p[1] >= best[1]) then best = p end end
+            return (best or pts[1])[2]
+        end
+        local sorted = {}
+        for i, p in ipairs(pts) do sorted[i] = p end
+        table.sort(sorted, function(a, b) return a[1] < b[1] end)
+        if x <= sorted[1][1] then return sorted[1][2] end
+        for i = 2, #sorted do
+            local a, b = sorted[i - 1], sorted[i]
+            if x <= b[1] then return a[2] + (b[2] - a[2]) * (x - a[1]) / (b[1] - a[1]) end
+        end
+        return sorted[#sorted][2]
+    end
+    M.floatCurves[#M.floatCurves + 1] = curve
+    return curve
+end
 function M.isSecret(v) return (type(v) == "table" and getmetatable(v) == SECRET_MT) or (type(v) == "userdata" and M.secretTables[v] == true) end
 M.secretTables = setmetatable({}, { __mode = "k" })
 -- a "secret table": userdata whose length and indexing raise (a real table cannot raise on # under Lua 5.1)
@@ -92,11 +125,26 @@ local TRACKED = { SetAttribute = 1, SetScript = 1, HookScript = 1, RegisterEvent
     SetPoint = 1, UnregisterEvent = 1, RegisterForClicks = 1 }
 -- operations on a protected frame that are blocked in combat lockdown
 local PROTECTED_OPS = { SetAttribute = true, SetPoint = true, ClearAllPoints = true, Show = true, Hide = true,
-    SetSize = true, SetWidth = true, SetHeight = true, SetScale = true, SetParent = true, SetShown = true }
+    SetSize = true, SetWidth = true, SetHeight = true, SetScale = true, SetParent = true, SetShown = true,
+    EnableMouse = true, SetPropagateMouseClicks = true, SetPropagateMouseMotion = true, SetMouseClickEnabled = true, SetMouseMotionEnabled = true }
 
 local FRAME = {}
 local function mock_isSecretValue(v) return M.isSecret(v) end
 local frameMT = {}
+
+-- Like the client: a frame that holds a secure (protected) frame anywhere below it becomes protected itself, so
+-- Show / Hide / SetPoint / SetScale ... on it in combat are blocked too (s.protectedParent; IsProtected() says true).
+function M.markProtectedParents(f)
+    local p = rawget(f, "__s").parent
+    local guard = 0
+    while type(p) == "table" and rawget(p, "__s") and guard < 50 do
+        guard = guard + 1
+        local ps = rawget(p, "__s")
+        if ps.protectedParent then break end
+        ps.protectedParent = true
+        p = ps.parent
+    end
+end
 
 local function newFrame(kind, name, parent, template)
     local f = setmetatable({}, frameMT)
@@ -105,6 +153,7 @@ local function newFrame(kind, name, parent, template)
         secure = type(template) == "string" and template:find("Secure") ~= nil, value = 0, checked = false })
     M.frames[#M.frames + 1] = f
     if name then M.setGlobal(name, f) end
+    if rawget(f, "__s").secure then M.markProtectedParents(f) end
     if kind == "AuraContainer" and M.AnchorFlowAxis and M.setupContainer then M.setupContainer(f) end
     -- the real BasicFrameTemplateWithInset (and friends) create a close button child: f.CloseButton plus the global
     -- <name>CloseButton. Its default click mimics the template: onCloseCallback if set, else HideUIPanel(frame).
@@ -157,7 +206,7 @@ local function track(self, method, ...)
     local rec = { frame = s.name or tostring(self), obj = self, method = method, args = { ... },
         combat = combat, secure = s.secure, n = select("#", ...) }
     M.calls[#M.calls + 1] = rec
-    if combat and s.secure and PROTECTED_OPS[method] then
+    if combat and (s.secure or s.protectedParent) and PROTECTED_OPS[method] then
         local v = { frame = rec.frame, method = method, args = rec.args, trace = (#M.violations + #M.softViolations < 3) and debug.traceback("", 3) or nil }
         if method == "SetAttribute" then
             M.violations[#M.violations + 1] = v
@@ -168,14 +217,43 @@ local function track(self, method, ...)
     return rec
 end
 
+-- Colour setters validate their arguments like the real client: r, g, b must be numbers (a secret number is fine) and an
+-- optional 4th argument (alpha) must be a number too. A colour object { r=, g=, b= } may stand in for r, g, b. Real error
+-- (frames.colorMode ~= "class"): "bad argument #4 to 'SetTextColor' (Usage: self:SetTextColor(color [, a]))" when a
+-- class token string ended up as alpha.
+local COLOR_SETTERS = { SetTextColor = true, SetVertexColor = true, SetStatusBarColor = true, SetColorTexture = true,
+    SetBackdropColor = true, SetBackdropBorderColor = true }
+local function isNum(v) return type(v) == "number" or M.isSecret(v) end
+local function checkColor(method, ...)
+    local n = select("#", ...)
+    local first = (...)
+    local usage = "(Usage: self:" .. method .. "(color [, a]))"
+    if type(first) == "table" and not M.isSecret(first) and first.r ~= nil then
+        if not (isNum(first.r) and isNum(first.g) and isNum(first.b)) then error("bad argument #1 to '" .. method .. "' " .. usage, 3) end
+        local a = select(2, ...)
+        if n >= 2 and a ~= nil and not isNum(a) then error("bad argument #2 to '" .. method .. "' " .. usage, 3) end
+        return
+    end
+    for i = 1, 3 do
+        if not isNum((select(i, ...))) then error("bad argument #" .. i .. " to '" .. method .. "' " .. usage, 3) end
+    end
+    if n >= 4 then
+        local a = select(4, ...)
+        if a ~= nil and not isNum(a) then error("bad argument #4 to '" .. method .. "' " .. usage, 3) end
+    end
+end
+M.checkColor = checkColor
+
 function FRAME.SetAttribute(self, k, v) track(self, "SetAttribute", k, v); rawget(self, "__s").attrs[k] = v end
 function FRAME.GetAttribute(self, k) return rawget(self, "__s").attrs[k] end
 for _, m in ipairs({ "SetVertexColor", "SetTexture", "SetAtlas", "SetColorTexture", "SetDesaturated", "SetTextColor", "SetTexCoord" }) do
     FRAME[m] = function(self, ...)
+        if COLOR_SETTERS[m] then checkColor(m, ...) end
         track(self, m, ...)
         local s = rawget(self, "__s")
         if m == "SetDesaturated" then s.desat = (...) and true or false end
         if m == "SetTexture" then s.texture = (...) end
+        if m == "SetTexCoord" then s.texCoord = { ... } end
         if m == "SetVertexColor" or m == "SetTextColor" then
             local r, g, b, a = ...
             s[m == "SetVertexColor" and "vertex" or "textColor"] = { r = r, g = g, b = b, a = a }
@@ -187,6 +265,9 @@ function FRAME.SetPropagateMouseClicks(self, b) track(self, "SetPropagateMouseCl
 function FRAME.SetPropagateMouseMotion(self, b) track(self, "SetPropagateMouseMotion", b); rawget(self, "__s").propMotion = b and true or false end
 function FRAME.IsMouseEnabled(self) return rawget(self, "__s").mouse == true end
 function FRAME.SetFrameLevel(self, l) rawget(self, "__s").level = l end
+-- clipping (raid text frame): recorded so tests can check which frame clips its children
+function FRAME.SetClipsChildren(self, b) rawget(self, "__s").clipsChildren = b and true or false end
+function FRAME.DoesClipChildren(self) return rawget(self, "__s").clipsChildren == true end
 function FRAME.GetFrameLevel(self)
     local s = rawget(self, "__s")
     if s.level then return s.level end
@@ -228,7 +309,12 @@ end
 function FRAME.GetCenter() return 150, 190 end
 function FRAME.GetName(self) return rawget(self, "__s").name end
 function FRAME.GetParent(self) return rawget(self, "__s").parent end
-function FRAME.SetParent(self, p) track(self, "SetParent", p); rawget(self, "__s").parent = p end
+function FRAME.SetParent(self, p)
+    track(self, "SetParent", p)
+    local s = rawget(self, "__s")
+    s.parent = p
+    if s.secure or s.protectedParent then M.markProtectedParents(self) end
+end
 function FRAME.GetObjectType(self) return rawget(self, "__s").kind end
 function FRAME.IsObjectType(self, t) return rawget(self, "__s").kind == t end
 function FRAME.Show(self) track(self, "Show"); rawget(self, "__s").shown = true end
@@ -256,7 +342,7 @@ function FRAME.SetValue(self, v) rawget(self, "__s").value = v end
 function FRAME.GetValue(self) return rawget(self, "__s").value end
 function FRAME.SetChecked(self, b) rawget(self, "__s").checked = b end
 function FRAME.GetChecked(self) return rawget(self, "__s").checked end
-function FRAME.IsProtected(self) return rawget(self, "__s").secure end
+function FRAME.IsProtected(self) local s = rawget(self, "__s"); return (s.secure or s.protectedParent) and true or false end
 -- child FRAMES (not textures / font strings), in creation order, like the game
 function FRAME.GetChildren(self)
     local out = {}
@@ -270,6 +356,9 @@ function FRAME.GetRegions() return end
 function FRAME.SetSize(self, w, h) track(self, "SetSize", w, h); local s = rawget(self, "__s"); s.w, s.h = w, h end
 function FRAME.SetWidth(self, w) track(self, "SetWidth", w); rawget(self, "__s").w = w end
 function FRAME.SetHeight(self, h) track(self, "SetHeight", h); rawget(self, "__s").h = h end
+-- FontString word wrap: recorded so layout tests can tell a wrapping label from a one-line one (real default: wrap on).
+function FRAME.SetWordWrap(self, on) track(self, "SetWordWrap", on); rawget(self, "__s").wordWrap = on and true or false end
+function FRAME.GetWordWrap(self) local w = rawget(self, "__s").wordWrap; if w == nil then return true end return w end
 function FRAME.GetWidth(self) return rawget(self, "__s").w or 100 end
 function FRAME.GetHeight(self) return rawget(self, "__s").h or 20 end
 function FRAME.SetAlphaFromBoolean(self, cond, a, b)
@@ -284,10 +373,11 @@ function FRAME.SetFormattedText(self, fmt, ...)
 end
 function FRAME.SetAllPoints(self, rel) track(self, "SetAllPoints", rel); rawget(self, "__s").allPoints = rel or rawget(self, "__s").parent or true end
 function FRAME.SetBackdrop(self, bd) track(self, "SetBackdrop", bd); rawget(self, "__s").backdrop = bd or false end
-function FRAME.SetBackdropBorderColor(self, r, g, b, a) track(self, "SetBackdropBorderColor", r, g, b, a); rawget(self, "__s").borderColor = { r = r, g = g, b = b, a = a } end
-function FRAME.SetBackdropColor(self, r, g, b, a) track(self, "SetBackdropColor", r, g, b, a); rawget(self, "__s").bgColor = { r = r, g = g, b = b, a = a } end
-function FRAME.SetStatusBarColor(self, r, g, b, a) track(self, "SetStatusBarColor", r, g, b, a); rawget(self, "__s").sbColor = { r = r, g = g, b = b, a = a } end
-function FRAME.SetScale(self, ...) track(self, "SetScale", ...) end
+function FRAME.SetBackdropBorderColor(self, ...) checkColor("SetBackdropBorderColor", ...); local r, g, b, a = ...; track(self, "SetBackdropBorderColor", r, g, b, a); rawget(self, "__s").borderColor = { r = r, g = g, b = b, a = a } end
+function FRAME.SetBackdropColor(self, ...) checkColor("SetBackdropColor", ...); local r, g, b, a = ...; track(self, "SetBackdropColor", r, g, b, a); rawget(self, "__s").bgColor = { r = r, g = g, b = b, a = a } end
+function FRAME.SetStatusBarColor(self, ...) checkColor("SetStatusBarColor", ...); local r, g, b, a = ...; track(self, "SetStatusBarColor", r, g, b, a); rawget(self, "__s").sbColor = { r = r, g = g, b = b, a = a } end
+function FRAME.SetScale(self, ...) track(self, "SetScale", ...); rawget(self, "__s").scale = (...) end
+function FRAME.GetScale(self) local sc = rawget(self, "__s").scale; if sc == nil then return 1 end return sc end
 function FRAME.RegisterForClicks(self, ...) track(self, "RegisterForClicks", ...) end
 function FRAME.Click(self, ...) local f = rawget(self, "__s").scripts.OnClick; if f then f(self, ...) end end
 function FRAME.CreateAnimationGroup(self) return newFrame("AnimationGroup", nil, self) end
@@ -538,6 +628,7 @@ local function drawContainer(c)
                 if M.auraPassesFilter(a, grp.filter) then matches[#matches + 1] = a end
             end
         end
+        if S.auraPoolLazy and M.growAuraGroup then M.growAuraGroup(c, grp, math.min(#matches, grp.maxFrameCount or 0)) end
         local pos = flowPositions(c)
         local anchor = c.flow.anchor or "TOPLEFT"
         for i, btn in ipairs(grp.frames) do
@@ -593,21 +684,45 @@ local function makeGroupButton(c, grp)
     rawset(btn, "SetApplicationCount", function(self, fs, opts) containerCall(c, "button:SetApplicationCount", fs, opts); self.wiredCount = fs end)
     rawset(btn, "AddDispelTypeTexture", function(self, tex, opts) containerCall(c, "button:AddDispelTypeTexture", tex, opts); self.dispelTextures[tex] = opts end)
     rawset(btn, "RemoveDispelTypeTexture", function(self, tex) containerCall(c, "button:RemoveDispelTypeTexture", tex); self.dispelTextures[tex] = nil end)
-    -- mouse state is recorded (the generic setters would be no-ops)
-    rawset(btn, "SetMouseClickEnabled", function(self, v) rawget(self, "__s").mouseClick = v and true or false end)
-    rawset(btn, "SetMouseMotionEnabled", function(self, v) rawget(self, "__s").mouseMotion = v and true or false end)
-    rawset(btn, "SetPropagateMouseMotion", function(self, v) rawget(self, "__s").propagateMotion = v and true or false end)
+    -- mouse state is recorded (the generic setters would be no-ops). These buttons come from a forbidden-object-table template:
+    -- in combat the game BLOCKS every mouse setter on them (real log, count 80: "ADDON_ACTION_BLOCKED: Button:SetPropagateMouseMotion()").
+    -- A blocked call changes nothing, is listed in M.blocked and lands in M.errors (the game blames the addon).
+    local function mouseSetter(method, field)
+        return function(self, v)
+            track(self, method, v)
+            local s = rawget(self, "__s")
+            s.mouseCalls = (s.mouseCalls or 0) + 1
+            if M.state.combat then
+                M.blocked[#M.blocked + 1] = { frame = self, method = method }
+                M.errors[#M.errors + 1] = "ADDON_ACTION_BLOCKED: Button:" .. method .. "()"
+                return
+            end
+            s[field] = v and true or false
+        end
+    end
+    rawset(btn, "SetMouseClickEnabled", mouseSetter("SetMouseClickEnabled", "mouseClick"))
+    rawset(btn, "SetMouseMotionEnabled", mouseSetter("SetMouseMotionEnabled", "mouseMotion"))
+    rawset(btn, "SetPropagateMouseMotion", mouseSetter("SetPropagateMouseMotion", "propagateMotion"))
+    rawset(btn, "SetPropagateMouseClicks", mouseSetter("SetPropagateMouseClicks", "propagateClicks"))
+    rawset(btn, "EnableMouse", mouseSetter("EnableMouse", "mouse"))
     rawget(btn, "__s").shown = false
     return btn
 end
 
-local function ensureGroupFrames(c, grp)
-    while #grp.frames < (grp.maxFrameCount or 0) do
+-- The real container makes buttons when it needs them, also mid-fight (initializeFrame then runs in combat). By default the mock
+-- pre-creates the whole pool; S.auraPoolLazy = true makes it grow only when more auras match than buttons exist (see drawContainer).
+local function growGroup(c, grp, n)
+    while #grp.frames < n do
         local btn = makeGroupButton(c, grp)
         grp.frames[#grp.frames + 1] = btn
         if grp.initializeFrame then grp.initializeFrame(btn) end
     end
 end
+local function ensureGroupFrames(c, grp)
+    if M.state.auraPoolLazy then return end
+    growGroup(c, grp, grp.maxFrameCount or 0)
+end
+M.growAuraGroup = growGroup
 
 function M.setupContainer(frame)
     local c = { frame = frame, unit = nil, groups = {}, flow = { padding = { 0, 0, 0, 0 } }, layout = {} }
@@ -672,7 +787,7 @@ function M.enableContainers(opts)
         local curveUtil = rawget(_G, "C_CurveUtil") or {}
         local merged = {}
         for k, v in pairs(curveUtil) do merged[k] = v end
-        merged.CreateCurve = function() return recorder("curve") end
+        merged.CreateCurve = function() local c = recorder("curve"); M.newFloatCurve(c); return c end
         M.setGlobal("C_CurveUtil", merged)
     end
 end
@@ -739,9 +854,194 @@ function M.resetState()
         dead = {}, offline = {}, outOfRange = {},
     }
     M.calls, M.errors, M.undefined, M.violations, M.softViolations, M.printed, M.timers, M.tickers = {}, {}, {}, {}, {}, {}, {}, {}
+    M.blocked = {}
     M.missingMethods, M.createdInCombat = {}, {}
     M.xdepth = 0
     M.frames = {}
+end
+
+-- The game's unit watch (runs in combat too: it is secure code): every watched frame is shown when its "unit" attribute
+-- exists (a secret answer counts as existing) and hidden otherwise; OnShow / OnHide run on a change, like the engine.
+-- Secure macro conditions for state drivers: "[group:raid] hide; show". Supports group, group:party, group:raid,
+-- combat, nocombat and an empty / bare clause (the default). Returns the action of the first matching clause or nil.
+function M.evalMacroCondition(cond)
+    local S = M.state
+    local function test(c)
+        c = c:gsub("^%s+", ""):gsub("%s+$", "")
+        if c == "" then return true end
+        if c == "group:raid" then return S.inRaid and true or false end
+        if c == "group:party" or c == "group" then return (S.inGroup or S.inRaid) and true or false end
+        if c == "combat" then return S.combat and true or false end
+        if c == "nocombat" then return not S.combat end
+        error("mock: unsupported macro condition '" .. c .. "'")
+    end
+    for clause in tostring(cond):gmatch("[^;]+") do
+        local blocks, action = {}, clause
+        action = clause:gsub("%b[]", function(b) blocks[#blocks + 1] = b:sub(2, -2); return "" end)
+        action = action:gsub("^%s+", ""):gsub("%s+$", "")
+        local match = #blocks == 0
+        for _, b in ipairs(blocks) do
+            local all = true
+            for c in (b .. ","):gmatch("([^,]*),") do if not test(c) then all = false end end
+            if all then match = true end
+        end
+        if match then return action end
+    end
+    return nil
+end
+
+-- The game runs "visibility" state drivers itself, also in combat (no addon code, so never a violation).
+function M.applyStateDrivers()
+    local list = {}
+    for _, f in ipairs(M.frames) do list[#list + 1] = f end
+    for _, f in ipairs(list) do
+        local s = rawget(f, "__s")
+        local cond = s.stateDrivers and s.stateDrivers.visibility
+        if cond then
+            local action = M.evalMacroCondition(cond)
+            local want = action == "show"
+            if (action == "show" or action == "hide") and want ~= s.shown then
+                s.shown = want
+                M.runFrameScript(f, want and "OnShow" or "OnHide")
+            end
+        end
+    end
+end
+
+-- Effective visibility like the client: shown and every parent shown.
+function M.isVisible(f)
+    local guard = 0
+    while type(f) == "table" and rawget(f, "__s") and guard < 50 do
+        guard = guard + 1
+        local s = rawget(f, "__s")
+        if not s.shown then return false end
+        f = s.parent
+    end
+    return true
+end
+
+function M.applyUnitWatch()
+    M.applyStateDrivers()
+    local exists = rawget(_G, "UnitExists")
+    local list = {}
+    for _, f in ipairs(M.frames) do list[#list + 1] = f end
+    for _, f in ipairs(list) do
+        local s = rawget(f, "__s")
+        if s.unitWatch then
+            local unit = s.attrs.unit
+            local ok, e = pcall(exists, unit)
+            local want = ok and (M.isSecret(e) or (e and true)) and true or false
+            if type(unit) ~= "string" then want = false end
+            if want ~= s.shown then
+                s.shown = want
+                M.runFrameScript(f, want and "OnShow" or "OnHide")
+            end
+        end
+    end
+end
+
+-- A raid of n players (0 = leave the raid). Units raid1..raidN get made-up names, classes, roles and health; the player
+-- is raid<playerIndex> (the SAME table as S.units.player, so changes to the player show on both tokens and UnitIsUnit
+-- says they are the same). Subgroups default to ceil(i / 5).
+-- opts = { playerIndex = 1, subgroups = { [i] = g }, members = { [i] = { name, class, role, health, maxHealth } },
+--          party = true (party1..4 become the other members of the player's subgroup, like the real client) }
+local RAID_ROLES = { "TANK", "HEALER", "DAMAGER", "DAMAGER", "DAMAGER" }
+function M.setRaid(n, opts)
+    opts = opts or {}
+    local S = M.state
+    for k in pairs(S.units) do if type(k) == "string" and k:match("^raid%d+$") then S.units[k] = nil end end
+    S.raid, S.unitAlias = {}, {}
+    S.inRaid = n > 0
+    S.raidSize = n
+    local pi = opts.playerIndex or 1
+    for i = 1, n do
+        local spec = opts.members and opts.members[i] or {}
+        local token = "raid" .. i
+        local u
+        if i == pi then
+            u = S.units.player
+            S.unitAlias[token] = "player"
+        else
+            local classes = { "WARRIOR", "PRIEST", "MAGE", "ROGUE", "DRUID", "PALADIN", "SHAMAN", "HUNTER", "WARLOCK", "MONK" }
+            u = { name = spec.name or ("Raider" .. i), class = spec.class or classes[(i - 1) % #classes + 1],
+                health = spec.health or 1000, maxHealth = spec.maxHealth or 1000, power = 100, maxPower = 100, powerType = 0,
+                role = spec.role or RAID_ROLES[(i - 1) % #RAID_ROLES + 1] }
+        end
+        S.units[token] = u
+        local g = spec.subgroup or (opts.subgroups and opts.subgroups[i]) or math.ceil(i / 5)
+        S.raid[i] = { unit = token, subgroup = g, rank = i == 1 and 2 or 0 }
+    end
+    if opts.party and n > 0 then
+        for k = 1, 4 do S.units["party" .. k] = nil end
+        local mine, k = S.raid[pi] and S.raid[pi].subgroup, 0
+        for i = 1, n do
+            if i ~= pi and S.raid[i].subgroup == mine and k < 4 then
+                k = k + 1
+                S.units["party" .. k] = S.units["raid" .. i]
+                S.unitAlias["party" .. k] = "raid" .. i
+            end
+        end
+        S.groupSize = k
+    end
+    if n > 0 then S.inGroup = true else S.inGroup = (S.groupSize or 0) > 0 end
+end
+
+-- Loaded addons with CPU / memory numbers for /hf perf. list = { { name, loaded = true, mem = KB, cpu = ms (session avg or
+-- total), recent = ms, peak = ms } }. opts:
+--   profiler = true (C_AddOnProfiler + Enum.AddOnProfilerMetric), profilerEnabled = true (IsEnabled answer; nil = no IsEnabled),
+--   scriptProfile = "0" | "1" (GetCVar), cpuUsage = true (GetAddOnCPUUsage / UpdateAddOnCPUUsage exist), memory = true,
+--   secret = true (every metric / memory value is secret), raise = true (every API raises).
+-- Counts: M.perfCalls = { memUpdate, memUpdateCombat, cpuUpdate }.
+function M.setAddons(list, opts)
+    opts = opts or {}
+    local S = M.state
+    M.perfCalls = { memUpdate = 0, memUpdateCombat = 0, cpuUpdate = 0 }
+    local byName = {}
+    for _, a in ipairs(list) do byName[a.name] = a end
+    local function boom() if opts.raise then error("addon API unavailable") end end
+    local function val(v) if opts.secret then return M.newSecret() end return v end
+    local addons = rawget(_G, "C_AddOns") or {}
+    addons.GetNumAddOns = function() boom(); return #list end
+    addons.GetAddOnInfo = function(i) boom(); local a = list[i]; if a then return a.name, a.name, "", true, "INSECURE" end end
+    addons.IsAddOnLoaded = function(name) boom(); local a = byName[name]; return a ~= nil and a.loaded ~= false end
+    M.setGlobal("C_AddOns", addons)
+    M.setGlobal("GetNumAddOns", nil)
+    if opts.memory ~= false then
+        M.setGlobal("UpdateAddOnMemoryUsage", function()
+            boom()
+            M.perfCalls.memUpdate = M.perfCalls.memUpdate + 1
+            if S.combat then M.perfCalls.memUpdateCombat = M.perfCalls.memUpdateCombat + 1 end
+        end)
+        M.setGlobal("GetAddOnMemoryUsage", function(name) boom(); local a = byName[name]; return val(a and a.mem or 0) end)
+    else
+        M.setGlobal("UpdateAddOnMemoryUsage", nil); M.setGlobal("GetAddOnMemoryUsage", nil)
+    end
+    local metrics = { SessionAverageTime = 1, RecentAverageTime = 2, PeakTime = 3 }
+    if opts.profiler ~= false then
+        local P = { GetAddOnMetric = function(name, id)
+            boom()
+            local a = byName[name]
+            if not a then return 0 end
+            if id == metrics.SessionAverageTime then return val(a.cpu or 0) end
+            if id == metrics.RecentAverageTime then return val(a.recent or a.cpu or 0) end
+            if id == metrics.PeakTime then return val(a.peak or 0) end
+            return 0
+        end }
+        if opts.profilerEnabled ~= nil then P.IsEnabled = function() boom(); return opts.profilerEnabled end end
+        M.setGlobal("C_AddOnProfiler", P)
+        rawget(_G, "Enum").AddOnProfilerMetric = metrics
+    else
+        M.setGlobal("C_AddOnProfiler", nil)
+        rawget(_G, "Enum").AddOnProfilerMetric = nil
+    end
+    local cvar = opts.scriptProfile or "0"
+    M.setGlobal("GetCVar", function(name) boom(); if name == "scriptProfile" then return cvar end return "0" end)
+    if opts.cpuUsage then
+        M.setGlobal("GetAddOnCPUUsage", function(name) boom(); local a = byName[name]; return val(a and a.cpu or 0) end)
+        M.setGlobal("UpdateAddOnCPUUsage", function() boom(); M.perfCalls.cpuUpdate = M.perfCalls.cpuUpdate + 1 end)
+    else
+        M.setGlobal("GetAddOnCPUUsage", nil); M.setGlobal("UpdateAddOnCPUUsage", nil)
+    end
 end
 
 function M.setGroup(n)
@@ -790,7 +1090,8 @@ local function buildGlobals()
     g("Clamp", function(v, a, b) return math.max(a, math.min(b, v)) end)
     g("Mixin", function(o, ...) for i = 1, select("#", ...) do for k, v in pairs((select(i, ...))) do o[k] = v end end return o end)
     g("CreateFromMixins", function(...) local o = {}; for i = 1, select("#", ...) do for k, v in pairs((select(i, ...))) do o[k] = v end end return o end)
-    g("CreateColor", function(r, gg, b, a) return { r = r, g = gg, b = b, a = a, GetRGB = function(s) return s.r, s.g, s.b end, GenerateHexColor = function() return "ffffffff" end } end)
+    g("CreateColor", function(r, gg, b, a) return { r = r, g = gg, b = b, a = a, GetRGB = function(s) return s.r, s.g, s.b end,
+        GetRGBA = function(s) return s.r, s.g, s.b, s.a == nil and 1 or s.a end, GenerateHexColor = function() return "ffffffff" end } end)
     g("date", os.date); g("time", os.time)
     g("GetTime", function() return S.now end)
     g("GetServerTime", function() return os.time() end)
@@ -862,8 +1163,25 @@ local function buildGlobals()
         end
         M.restricted[closure] = true
         frame:SetScript(script, closure)
+        local fs = rawget(frame, "__s")
+        if fs then fs.wraps = fs.wraps or {}; fs.wraps[script] = { pre = pre, post = post } end
     end)
-    g("RegisterStateDriver", function() end); g("UnregisterStateDriver", function() end)
+    -- state drivers are recorded per frame (st(frame).stateDrivers[name] = condition) so snapshots can see them
+    -- (Un)RegisterStateDriver on a secure frame is protected: in combat it is a violation, like SetAttribute.
+    g("RegisterStateDriver", function(frame, name, cond)
+        local s = type(frame) == "table" and rawget(frame, "__s")
+        if s then
+            if S.combat and (s.secure or s.protectedParent) then M.violations[#M.violations + 1] = { frame = s.name or tostring(frame), method = "RegisterStateDriver", args = { name, cond }, trace = debug.traceback("", 2) } end
+            s.stateDrivers = s.stateDrivers or {}; s.stateDrivers[name] = cond
+        end
+    end)
+    g("UnregisterStateDriver", function(frame, name)
+        local s = type(frame) == "table" and rawget(frame, "__s")
+        if s then
+            if S.combat and (s.secure or s.protectedParent) then M.violations[#M.violations + 1] = { frame = s.name or tostring(frame), method = "UnregisterStateDriver", args = { name }, trace = debug.traceback("", 2) } end
+            if s.stateDrivers then s.stateDrivers[name] = nil end
+        end
+    end)
     g("RegisterAttributeDriver", function() end); g("UnregisterAttributeDriver", function() end)
     g("SecureHandlerSetFrameRef", function() end)
     g("SecureButton_GetModifierPrefix", function()
@@ -908,11 +1226,20 @@ local function buildGlobals()
         if S.secretRange or S.secretAll then return M.newSecret() end
         return not (S.invisible and S.invisible[unit])
     end)
+    -- S.unitAlias (set by M.setRaid) maps tokens that point at the same person: raidN -> "player", partyK -> raidN.
+    -- S.secretUnitIsUnit makes every answer secret.
+    local function canon(x)
+        local alias = S.unitAlias
+        if not alias then return x end
+        for _ = 1, 3 do if alias[x] then x = alias[x] else break end end
+        return x
+    end
     g("UnitIsUnit", function(a, b)
         if (S.secretTarget or S.secretAll) and (a == "target" or b == "target") then return M.newSecret() end
-        if b == "target" then return S.target ~= nil and a == S.target end
-        if a == "target" then return S.target ~= nil and b == S.target end
-        return a == b
+        if S.secretUnitIsUnit then return M.newSecret() end
+        if b == "target" then return S.target ~= nil and canon(a) == canon(S.target) end
+        if a == "target" then return S.target ~= nil and canon(b) == canon(S.target) end
+        return canon(a) == canon(b)
     end)
     g("UnitIsPlayer", function() return true end)
     g("UnitIsFriend", function() return true end)
@@ -940,12 +1267,37 @@ local function buildGlobals()
     g("UnitPhaseReason", function() return nil end)
     g("UnitInPhase", function() return true end)
     g("GetRaidTargetIndex", function() return nil end)
-    g("GetNumGroupMembers", function() return S.inGroup and ((S.groupSize or 0) + 1) or 0 end)
+    g("GetNumGroupMembers", function()
+        if S.secretGroup then return M.newSecret() end
+        if S.inRaid then return S.raidSize or 0 end
+        return S.inGroup and ((S.groupSize or 0) + 1) or 0
+    end)
     g("GetNumSubgroupMembers", function() return S.groupSize or 0 end)
     g("IsInGroup", function() return S.inGroup end)
-    g("IsInRaid", function() return S.inRaid end)
-    g("IsInInstance", function() return S.inInstance and true or false, S.inInstance and "party" or "none" end)
-    g("GetRaidRosterInfo", function() return nil end)
+    g("IsInRaid", function() if S.secretGroup then return M.newSecret() end return S.inRaid end)
+    -- S.instanceType ("none", "party", "raid", "pvp", "arena", "scenario") wins over the older S.inInstance flag;
+    -- S.secretInstance makes both returns secret.
+    g("IsInInstance", function()
+        if S.secretInstance then return M.newSecret(), M.newSecret() end
+        if S.instanceType then return S.instanceType ~= "none", S.instanceType end
+        return S.inInstance and true or false, S.inInstance and "party" or "none"
+    end)
+    -- 12 returns like the real API: name, rank, subgroup, level, class, fileName, zone, online, isDead, role, isML, combatRole.
+    -- S.secretRoster: subgroup and combatRole are secret; S.secretAll: name, subgroup, class, fileName and combatRole are secret;
+    -- S.rosterError: the call raises. Out of a raid (or an unknown index) it returns nothing.
+    g("GetRaidRosterInfo", function(i)
+        if S.rosterError then error("GetRaidRosterInfo unavailable") end
+        M.rosterCalls = (M.rosterCalls or 0) + 1
+        if not S.inRaid or not S.raid then return nil end
+        local r = S.raid[i]
+        local x = r and S.units[r.unit]
+        if not x then return nil end
+        local name, subgroup, cls, file, role = x.name, r.subgroup, CLASS_LOC[x.class], x.class, x.role or "NONE"
+        if S.secretRoster or S.secretAll then subgroup, role = M.newSecret(), M.newSecret() end
+        if S.secretAll then name, cls, file = M.newSecret(), M.newSecret(), M.newSecret() end
+        return name, r.rank or 0, subgroup, 80, cls, file, "Test Zone", not S.offline[r.unit], S.dead[r.unit] == true,
+            nil, false, role
+    end)
     g("GetSpecialization", function() return 1 end)
     g("GetSpecializationRole", function() return "HEALER" end)
 
@@ -1203,7 +1555,20 @@ local function buildGlobals()
     g("EventRegistry", { RegisterCallback = function() end, TriggerEvent = function() end })
     g("TooltipDataProcessor", { AddTooltipPostCall = function() end })
     g("FONT_COLOR_CODE_CLOSE", "|r")
-    g("RegisterUnitWatch", function() end); g("UnregisterUnitWatch", function() end)
+    -- unit watch is recorded per frame (st(frame).unitWatch = true / false); visibility itself is not simulated
+    -- (Un)RegisterUnitWatch is protected: on a secure frame in combat it is a violation (the real client blocks it).
+    -- M.applyUnitWatch() plays the game's unit watch: watched frames are shown when their unit exists.
+    local function unitWatch(method, on)
+        return function(frame)
+            local s = type(frame) == "table" and rawget(frame, "__s")
+            if not s then return end
+            M.unitWatchCalls = (M.unitWatchCalls or 0) + 1
+            if S.combat and s.secure then M.violations[#M.violations + 1] = { frame = s.name or tostring(frame), method = method, args = {}, trace = debug.traceback("", 2) } end
+            s.unitWatch = on
+        end
+    end
+    g("RegisterUnitWatch", unitWatch("RegisterUnitWatch", true))
+    g("UnregisterUnitWatch", unitWatch("UnregisterUnitWatch", false))
     g("SecureCmdOptionParse", function(s) return s end)
     g("GetMouseFoci", function() return {} end); g("GetMouseFocus", function() return nil end)
     g("C_ClassColor", { GetClassColor = function() return colors.PALADIN end })
@@ -1214,30 +1579,62 @@ local function buildGlobals()
         LuaCurveType = { Linear = 0, Cosine = 1, Step = 2 }, UnitAuraSortRule = { Default = 0, Expiration = 1 },
         PowerType = { Mana = 0, Rage = 1 }, SpellBookSpellBank = { Player = 0, Pet = 1 }, SpellBookItemType = { None = 0, Spell = 1, FutureSpell = 2, PetAction = 3, Flyout = 4 } })
     g("CurveConstants", { ScaleTo100 = { scale100 = true }, Reverse = {}, ScaleTo100Reverse = {} })
+    -- Colour curves record their type and points (curve.points = { {x, colour} }). A Step curve evaluates like the
+    -- client: the point with the largest x <= the input (x = 1 full health -> the point at 1). Other types keep the
+    -- old mock answer (the first point). M.curves lists every colour curve created.
+    M.curves, M.floatCurves = {}, {}
     g("C_CurveUtil", { CreateColorCurve = function()
         local pts = {}
-        return { SetType = function() end, AddPoint = function(_, x, c) pts[#pts + 1] = c end,
-            Evaluate = function() return pts[1] or colors.PALADIN end }
-    end, CreateCurve = function() return { SetType = function() end, AddPoint = function() end, Evaluate = function() return 1 end } end })
+        local curve = { points = pts }
+        curve.SetType = function(_, t) curve.curveType = t end
+        curve.AddPoint = function(_, x, c) pts[#pts + 1] = { x, c } end
+        curve.Evaluate = function(_, x)
+            if curve.curveType == 2 and type(x) == "number" then   -- Enum.LuaCurveType.Step
+                local best
+                for _, p in ipairs(pts) do if p[1] <= x + 1e-9 and (not best or p[1] >= best[1]) then best = p end end
+                best = best or pts[1]
+                return best and best[2] or colors.PALADIN
+            end
+            return pts[1] and pts[1][2] or colors.PALADIN
+        end
+        M.curves[#M.curves + 1] = curve
+        return curve
+    end, CreateCurve = function() return M.newFloatCurve() end })
     g("UnitHealthPercent", function(unit, usePredicted, curve)
         if S.secret or S.secretAll then
+            if type(curve) == "table" and curve.isFloat then return M.newSecret() end
             if type(curve) == "table" and curve.Evaluate then
-                return { GetRGB = function() return M.newSecret(), M.newSecret(), M.newSecret() end }
+                return { GetRGB = function() return M.newSecret(), M.newSecret(), M.newSecret() end,
+                    GetRGBA = function() return M.newSecret(), M.newSecret(), M.newSecret(), M.newSecret() end }
             end
             return M.newSecret()
         end
         local x = unitState(unit)
-        if type(curve) == "table" and curve.Evaluate then return curve:Evaluate(0.5) end
-        return x and (x.health / x.maxHealth * 100) or 0
+        local hp = x and (S.dead[unit] and 0 or x.health) or 0
+        local frac = (x and x.maxHealth > 0) and hp / x.maxHealth or 0
+        if type(curve) == "table" and curve.Evaluate then return curve:Evaluate(frac) end
+        return frac * 100
     end)
     g("AbbreviateNumbers", function(v) if M.isSecret(v) then return M.newSecret() end return string.format("%.1fk", (tonumber(v) or 0) / 1000) end)
-    g("UnitHealthMissing", function(unit) return numOrSecret(100) end)
+    -- like the client: max - current (0 at full health; the whole max when dead)
+    g("UnitHealthMissing", function(unit)
+        local x = unitState(unit)
+        if not x then return numOrSecret(0) end
+        return numOrSecret(x.maxHealth - (S.dead[unit] and 0 or x.health))
+    end)
+    -- The calculator remembers the unit of the last UnitGetDetailedHealPrediction(unit, nil, calc): GetMissingHealth is
+    -- max - hp of that unit (whole max when dead), every other Get* (incoming heals, absorbs) answers 0.
     g("CreateUnitHealPredictionCalculator", function()
         local c = {}
         local fn = function() return numOrSecret(0) end
+        c.GetMissingHealth = function(self)
+            local x = unitState(rawget(self, "__unit"))
+            if not x then return numOrSecret(0) end
+            return numOrSecret(x.maxHealth - (S.dead[rawget(self, "__unit")] and 0 or x.health))
+        end
         return setmetatable(c, { __index = function(_, k) if k:sub(1, 3) == "Get" then return fn end return function() end end })
     end)
-    g("UnitGetDetailedHealPrediction", function() end)
+    g("UnitGetDetailedHealPrediction", function(unit, _, calc) if type(calc) == "table" then rawset(calc, "__unit", unit) end end)
     g("PickupSpell", function() end); g("ToggleFrame", function() end); g("IsIndoors", function() return false end)
     g("PlayerSpellsUtil", { OpenToSpellBookTab = function() end, ToggleSpellBookFrame = function() end })
     g("ToggleSpellBook", function() end)

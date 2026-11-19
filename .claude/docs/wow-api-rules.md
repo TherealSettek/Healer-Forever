@@ -36,6 +36,19 @@ WoW Forever runs the **Midnight / 12.x Mainline API**. Addons can't cast automat
   `EnableMouse` and `SetPropagate*` are all forbidden in combat. Go through `ns:AfterCombat`.
 - Non-secure children (aura icons, badges, borders, glow, range overlays) can change in combat. Create them ahead of time (`Auras.Prepare`).
 - Minimap pins: don't call EnableMouse every tick. Only call it when the value changes.
+- **Mouse setters are blocked in combat**, also on the native aura buttons the game creates mid-fight (real error, count 80:
+  `ADDON_ACTION_BLOCKED: Button:SetPropagateMouseMotion()`, from `initializeFrame`). Never call `SetPropagateMouseMotion`,
+  `SetPropagateMouseClicks`, `EnableMouse`, `SetMouseClickEnabled` or `SetMouseMotionEnabled` while `InCombatLockdown()` on anything
+  inside the unit buttons. Remember the wanted state and apply it on `PLAYER_REGEN_ENABLED` (`ns:AfterCombat`). Code that the game
+  calls in combat (container `initializeFrame`, pool callbacks) must take the same route. Safe defaults go in the XML template
+  (`enableMouseClicks="false"`), because XML attributes apply at creation without a protected call. A `pcall` doesn't help:
+  the block is reported anyway.
+
+- **Showing protected frames in combat:** only a secure state driver can (`RegisterStateDriver(frame, "visibility", "[group:raid] hide; show")`,
+  registered out of combat). Our plain anchors work with it because `ns.NewFrame` only wraps SetScript/HookScript, never Show/Hide (a Lua
+  override of Show would run addon code inside the secure driver). Unregister the driver before the addon itself shows/hides that frame again.
+- **Game-managed aura regions:** never rely on SetAlpha/Hide on regions the game drives (Icon, DispelBorder, Cooldown, Count of an aura
+  button, or a texture given to `AddDispelTypeTexture`): the game re-sets them. Put them under a plain frame of ours and show/alpha that.
 
 ## 4. Secure clicks and casting
 - Unit buttons: `SecureUnitButtonTemplate`, `RegisterForClicks("AnyUp")` **only**. `SecureUnitButton_OnClick` has no down/up filter,

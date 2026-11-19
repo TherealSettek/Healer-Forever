@@ -54,7 +54,7 @@ end
 
 -- Files of the pure-module contract, in dependency order.
 L.CONTRACT_FILES = {
-    "Util/Util.lua", "Data/Classes.lua", "Buffs/Presets.lua",
+    "Util/Util.lua", "Util/RaidLayout.lua", "Data/Classes.lua", "Buffs/Presets.lua",
     "ClickCast/Bindings.lua", "Core.lua",
 }
 

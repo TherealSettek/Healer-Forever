@@ -61,6 +61,20 @@ ns.DEFAULTS = {
     smartButton = { show = false, point = { point = "CENTER", relativePoint = "CENTER", x = 0, y = -150 } },
     customSpells = {},
     ui = { modSet = "mac", extraButtons = false },
+    -- raid layout (its own settings; the party layout is never changed by them). Validated by
+    -- ns.RaidLayout.Normalize in buildDB. No schema bump: older saves simply have no `raid` key.
+    raid = {
+        layoutMode = "auto", onlyAbove5 = true,
+        point = { point = "TOPLEFT", relativePoint = "TOPLEFT", x = 60, y = -330 },
+        scale = 100, width = 64, height = 24, spacing = 2,
+        groupArrange = "columns", groupsPerLine = 8, groupLabels = true,
+        sortWithin = "none", hideEmptyGroups = true,
+        showNames = true, nameSize = 7, nameLength = 7,
+        healthText = "deficit", muteFull = true, showIncoming = true, rangeAlpha = 50,
+        buffs = { show = true, size = 10, rebuffPercent = 5, showEnding = true,
+            endingLook = "pulse", multi = "state", inCombat = "hide" },
+        debuffs = { show = true, display = "glowIcons", max = 3, size = 10 },
+    },
     errorLog = {},
     marks = {},
     debugLog = {},
@@ -175,6 +189,16 @@ function ns.CopyText()
     local errors = ns.FormatErrors(20)
     parts[#parts + 1] = "== /hf errors (" .. #errors .. " lines) =="
     for _, line in ipairs(errors) do parts[#parts + 1] = line end
+    if ns.Perf then
+        parts[#parts + 1] = ""
+        parts[#parts + 1] = "== /hf perf =="
+        local ok, lines = pcall(ns.Perf.Lines)
+        if ok then
+            for _, line in ipairs(lines) do parts[#parts + 1] = tostring(line) end
+        else
+            parts[#parts + 1] = "failed: " .. tostring(lines)
+        end
+    end
     return table.concat(parts, "\n")
 end
 
@@ -333,6 +357,33 @@ function ns.InGroup()
     if not ok then return false end
     if ns.issecret(value) then return true end
     return value and true or false
+end
+
+-- In a raid? A secret answer counts as "yes" (the raid layout then decides from the other checks).
+function ns.InRaid()
+    if not IsInRaid then return false end
+    local ok, value = pcall(IsInRaid)
+    if not ok then return false end
+    if ns.issecret(value) then return true end
+    return value and true or false
+end
+
+-- Number of group members (0 when solo). A secret count is treated as a full raid (40).
+function ns.GroupSize()
+    if not GetNumGroupMembers then return 0 end
+    local ok, value = pcall(GetNumGroupMembers)
+    if not ok then return 0 end
+    if ns.issecret(value) then return 40 end
+    if type(value) ~= "number" then return 0 end
+    return value
+end
+
+-- Instance type from IsInInstance ("none", "party", "raid", "pvp", "arena", "scenario"); secret or unknown -> "none".
+function ns.InstanceType()
+    if not IsInInstance then return "none" end
+    local ok, _, kind = pcall(IsInInstance)
+    if not ok or ns.issecret(kind) or type(kind) ~= "string" then return "none" end
+    return kind
 end
 
 function ns.InCombat()
@@ -605,6 +656,7 @@ local function buildDB(saved)
     a.maxDebuffs = Util.ClampNumber(a.maxDebuffs, 1, 12, 3)
     if a.timerPos ~= "inside" then a.timerPos = "below" end
     db.buffs.rebuffPercent = Util.ClampNumber(db.buffs.rebuffPercent, 0, 50, 5)
+    if ns.RaidLayout then db.raid = ns.RaidLayout.Normalize(db.raid, ns.DEFAULTS.raid) end
     if type(db.errorLog) ~= "table" then db.errorLog = {} end
     if type(db.marks) ~= "table" then db.marks = {} end
     -- the "hide Blizzard party frames" option was removed (taint risk): drop the saved keys
