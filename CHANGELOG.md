@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.12.1
+
+- New characters now start with empty buff presets and click-casting. Before, a new character could get the buff
+  presets and click-casting of another class from an old account-wide setup (for example a Druid with Paladin
+  blessings and Holy Light), and those couldn't be removed in the options.
+- Characters that already got another class's buff presets this way have them cleared once, together with the copied
+  click-casting, with one chat message. Everything else (frame positions, sizes, colours) is kept. Characters whose
+  buffs match their class keep all their settings exactly as they were.
+- `/hf copyaccount` still copies the old account-wide settings on request, but skips buff presets and click-casting
+  when they belong to another class.
+
 ## 0.12.0
 
 - New optional threat bar on the party frames (Options > Frames & Bars, off by default): a thin strip above each

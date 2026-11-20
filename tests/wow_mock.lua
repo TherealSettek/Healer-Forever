@@ -1202,7 +1202,13 @@ local function buildGlobals()
     g("UnitNameUnmodified", function(unit) local x = u(unit); return x and x.name or nil, nil end)
     g("UnitFullName", function(unit) local x = u(unit); if x and S.secretNames then return M.newSecret(), nil end return x and x.name or nil, nil end)
     g("GetUnitName", function(unit) local x = u(unit); return x and x.name or nil end)
-    g("UnitClass", function(unit) local x = u(unit); if not x then return nil end return CLASS_LOC[x.class], x.class, 1 end)
+    -- S.secretClass (true, or a set of unit tokens such as { player = true }): UnitClass returns secrets for those units.
+    -- S.classError (same shape): UnitClass raises for those units. Both model an unreadable class at load time.
+    local function hit(flag, unit) return flag == true or (type(flag) == "table" and flag[unit] == true) end
+    g("UnitClass", function(unit) local x = u(unit); if not x then return nil end
+        if hit(S.classError, unit) then error("UnitClass: unit info not available", 2) end
+        if hit(S.secretClass, unit) then return M.newSecret(), M.newSecret(), M.newSecret() end
+        return CLASS_LOC[x.class], x.class, 1 end)
     g("UnitClassBase", function(unit) local x = u(unit); return x and x.class end)
     g("UnitHealth", function(unit) local x = u(unit); if not x then return 0 end return numOrSecret(S.dead[unit] and 0 or x.health) end)
     g("UnitHealthMax", function(unit) local x = u(unit); if not x then return 0 end return numOrSecret(x.maxHealth) end)

@@ -82,7 +82,11 @@ SlashCmdList["HEALERFOREVER"] = function(msg)
     elseif cmd == "copyaccount" then
         if arg:lower() == "confirm" then
             ns:AfterCombat("copyaccount", function()
-                if ns:ImportAccount() then
+                local ok, skipped = ns:ImportAccount()
+                if ok and skipped then
+                    ns:Print("Copied account-wide settings into " .. ns:ProfileName() .. ", except buff presets and "
+                        .. "click-casting: they belong to another class, so yours stay at the defaults.")
+                elseif ok then
                     ns:Print("Copied account-wide settings into " .. ns:ProfileName() .. ".")
                 else
                     ns:Print("No account-wide settings found.")

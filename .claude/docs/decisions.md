@@ -112,3 +112,14 @@
 - **Green option (owner added 2026-11-20):** "Green when below the tank" (`frames.threatBarShowSafe`, default off) draws a fixed green
   strip (0.25, 0.8, 0.3) at level 0 (in the fight, less threat than the tank). Owner follow-up (same day): getting on a threat list takes
   a few seconds, so `nil` is green too **while you are fighting** (own combat state); out of a fight `nil` stays hidden.
+
+## New characters start empty (2026-11-20, 0.12.1)
+- A new Druid got the Paladin's buff presets and Holy Light/Purify click-casting, because older versions copied the account-wide
+  settings (made on the Paladin) into every new character, and the Buff Presets UI can't show or remove another class's buffs.
+  Owner: "if someone opens up that addon as a start he should just have empty buff presets, click casting etc" and "remove preset
+  if exists".
+- New characters start from the clean defaults; no automatic copy. `/hf copyaccount` stays as a manual command (asks to confirm).
+  If the account copy holds another class's buffs, it copies everything except presets and click-casting (chosen over refusing:
+  the frame layout etc. still comes across, and nothing foreign can land in a pane that can't remove it).
+- Characters already hit are cleaned once on load (presets + click-casting back to defaults, one chat line). Characters whose class
+  matches the copied buffs (the owner's Paladin) are never touched.

@@ -729,25 +729,88 @@ local function hasContent(t)
     return type(t) == "table" and next(t) ~= nil
 end
 
--- Settings are per character (HealerForeverCharDB). The account-wide HealerForeverDB is only a read-only
--- seed: on the first load of a character it is deep-copied, never modified, and never written again.
-function ns:Init()
-    local char = HealerForeverCharDB
-    local migrated = false
-    if type(char) ~= "table" then
-        char = nil
-        if hasContent(HealerForeverDB) then
-            char = Util.DeepCopy(HealerForeverDB)
-            migrated = true
+-- The player's class token, read safely at load: nil when the API is missing, errors, returns a secret or an
+-- unknown class. Callers treat nil as "can't tell" and change nothing.
+local function playerClassToken()
+    if not UnitClass then return nil end
+    local ok, _, token = pcall(UnitClass, "player")
+    if not ok or ns.issecret(token) or type(token) ~= "string" then return nil end
+    if not ns.Classes.ROLES[token] then return nil end
+    return token
+end
+ns.PlayerClassToken = playerClassToken
+
+local function cellHasForeign(cell, allowed)
+    if type(cell) == "string" then
+        return cell ~= "none" and not allowed[cell]
+    elseif type(cell) == "table" then
+        for _, key in ipairs(cell) do
+            if type(key) == "string" and key ~= "none" and not allowed[key] then return true end
         end
     end
-    if migrated then char.migratedFrom = "account" end
+    return false
+end
+
+-- True when any preset cell (class/role rules or "Self") holds a buff key the given caster class can't cast.
+-- Pure; used to spot another class's presets copied in from the old account-wide settings.
+function ns.PresetsHaveForeignBuffs(presets, classToken)
+    if type(presets) ~= "table" or type(classToken) ~= "string" then return false end
+    local allowed = {}
+    for _, key in ipairs(ns.Classes.CatalogBuffs(classToken)) do allowed[key] = true end
+    for _, p in ipairs(presets) do
+        if type(p) == "table" then
+            if cellHasForeign(p.self, allowed) then return true end
+            for _, entry in pairs(type(p.map) == "table" and p.map or {}) do
+                if type(entry) == "table" then
+                    for _, cell in pairs(entry) do
+                        if cellHasForeign(cell, allowed) then return true end
+                    end
+                end
+            end
+        end
+    end
+    return false
+end
+
+-- Buff presets and click-casting back to the clean-install defaults; everything else is kept.
+local function resetPresetsAndBindings(db)
+    db.presets = Util.DeepCopy(ns.Presets.DEFAULTS)
+    for _, p in ipairs(db.presets) do ns.Presets.MigratePreset(p) end
+    db.activePreset = 1
+    db.bindings = Util.DeepCopy(ns.DEFAULTS.bindings)
+end
+
+ns.FOREIGN_SEED_CLEARED_MSG = "this character had another class's buff presets and click-casting copied from an old "
+    .. "account-wide setup; they were cleared."
+
+-- One-time cleanup (0.12.1) for characters that older versions seeded from the account-wide settings of a
+-- different class (e.g. a new Druid that got the Paladin's blessings and Holy Light bindings). Only runs when the
+-- profile is marked migratedFrom = "account" AND its presets hold buffs this class can't cast; then presets and
+-- bindings go back to the defaults and the marker becomes "account-cleared" so it never runs again. A matching
+-- class (the owner's Paladin) or an unreadable class changes nothing at all.
+local function cleanForeignSeed(db)
+    if db.migratedFrom ~= "account" then return false end
+    local class = playerClassToken()
+    if not class or not ns.PresetsHaveForeignBuffs(db.presets, class) then return false end
+    resetPresetsAndBindings(db)
+    db.migratedFrom = "account-cleared"
+    ns:Print(ns.FOREIGN_SEED_CLEARED_MSG)
+    return true
+end
+
+-- Settings are per character (HealerForeverCharDB). A character without saved settings starts from the clean
+-- defaults (0.12.1, owner decision 2026-11-20); the legacy account-wide HealerForeverDB is no longer copied in
+-- automatically, only on request with /hf copyaccount. HealerForeverDB is never modified.
+function ns:Init()
+    local char = HealerForeverCharDB
+    if type(char) ~= "table" then char = nil end
     ns.db = buildDB(char)
     HealerForeverCharDB = ns.db
     if ns.downgradeFrom then
         ns:Print("your saved settings come from a newer version (schema " .. ns.downgradeFrom
             .. " > " .. ns.DEFAULTS.version .. "); they are kept untouched but some options may be ignored.")
     end
+    cleanForeignSeed(ns.db)
     ns:Fire("INIT")
 end
 
@@ -757,15 +820,24 @@ function ns:ProfileName()
     return name .. "-" .. realm
 end
 
--- Replaces this character's settings with a copy of the account-wide ones. Returns false if none exist.
+-- Replaces this character's settings with a copy of the account-wide ones (/hf copyaccount confirm).
+-- Returns false if none exist. If the copied buff presets hold buffs this class can't cast, the presets and
+-- click-casting are NOT taken (they stay at the defaults) and the second return value is true.
 function ns:ImportAccount()
     if not hasContent(HealerForeverDB) then return false end
     local copy = Util.DeepCopy(HealerForeverDB)
     copy.migratedFrom = "account"
-    ns.db = buildDB(copy)
+    local db = buildDB(copy)
+    local skipped = false
+    local class = playerClassToken()
+    if class and ns.PresetsHaveForeignBuffs(db.presets, class) then
+        resetPresetsAndBindings(db)
+        skipped = true
+    end
+    ns.db = db
     HealerForeverCharDB = ns.db
     ns:Changed("all")
-    return true
+    return true, skipped
 end
 
 function ns:ResetDB()

@@ -3,9 +3,15 @@
 ## Storage
 - `HealerForeverCharDB` (SavedVariablesPerCharacter) is the **active** store, saved per character in
   `WTF/Account/<acct>/<realm>/<char>/SavedVariables/HealerForever.lua`.
-- `HealerForeverDB` (account-wide) is **legacy**. It's read once to seed a new character (`migratedFrom = "account"`) and never written.
-  `/hf copyaccount [confirm]` re-imports it. `/hf profile` shows which profile is active. `/hf reset` resets the current character only.
-- Fresh installs have no account DB, so they start from clean `ns.DEFAULTS`.
+- `HealerForeverDB` (account-wide) is **legacy** and never written. Since 0.12.1 it is **not** copied into new characters any more:
+  a character without `HealerForeverCharDB` always starts from clean `ns.DEFAULTS` (owner decision 2026-11-20).
+  `/hf copyaccount [confirm]` imports it on request (`migratedFrom = "account"`). If the copied presets hold a buff key outside
+  `Classes.CatalogBuffs(<player class>)`, presets and bindings stay at the defaults and the command says so.
+  `/hf profile` shows which profile is active. `/hf reset` resets the current character only.
+- **One-time cleanup (0.12.1, no schema bump):** on load, a profile with `migratedFrom == "account"` whose presets hold a buff the
+  player's class can't cast (`ns.PresetsHaveForeignBuffs`) gets `presets`, `activePreset` and `bindings` reset to the defaults, one chat
+  line, and `migratedFrom = "account-cleared"` so it never runs again. Everything else is kept. Class read with `pcall(UnitClass, "player")`;
+  secret/unknown class = nothing changes. A matching class (the owner's Paladin seeded from the Paladin account DB) is left untouched.
 
 ## Runtime vs disk (sparse save, schema v3)
 - At runtime `ns.db` is a **full** table: saved values merged over DEFAULTS, then sanitized, then migrated.

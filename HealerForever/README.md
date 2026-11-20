@@ -95,10 +95,11 @@ The TOC uses `## Interface: 16001, 120005`. 16001 is the community-reported Fore
 
 ## Settings storage
 
-Settings are per character (`HealerForeverCharDB`). On a character's first load, the account-wide `HealerForeverDB`
-(from earlier versions) is deep-copied into it once (`migratedFrom = "account"`); existing values are never replaced
-and the account-wide table is left untouched as a read-only seed for other characters. `/hf profile` shows the profile
-in use; `/hf copyaccount` (then `/hf copyaccount confirm`) re-copies the account-wide settings into this character.
+Settings are per character (`HealerForeverCharDB`). A character without saved settings starts from the clean defaults
+(since 0.12.1; earlier versions copied the account-wide `HealerForeverDB` in automatically). The account-wide table is
+never modified. `/hf profile` shows the profile in use; `/hf copyaccount` (then `/hf copyaccount confirm`) copies the
+account-wide settings into this character on request; buff presets and click-casting that belong to another class are
+not copied. A character that an older version seeded with another class's presets gets them cleared once on load.
 WoW only writes SavedVariables on /reload or a clean logout/exit, so changes are lost if the game crashes first.
 
 ## Slash commands
