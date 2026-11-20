@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.12.0
+
+- New optional threat bar on the party frames (Options > Frames & Bars, off by default): a thin strip above each
+  player's health bar. Yellow = more threat than the tank, orange = the tank is about to lose aggro, red = has aggro.
+  It covers every mob in the fight, needs no target, and can be set to show only in combat. Height 2-6 px.
+  Hover "Show threat bar" for a short explanation of the colours; the Help tab mentions it too.
+  Optional "Green when below the tank" (off by default): green = safe: less threat than the tank, or no threat yet while you are fighting.
+
 ## 0.11.0
 
 - New Raid layout with its own settings in a new "Raid Layout" options tab. Your party frames and every setting you

@@ -194,12 +194,48 @@ Options:RegisterPane("frames", "Frames & Bars", 5, function(pane)
         c:SetPoint("TOPLEFT", 0, rowY)
         track(c)
         rowY = rowY - 24
+        return c
     end
     check("Show mana / rage / energy bar", function() return ns.db.frames.showPower end, setFrames("showPower"))
     check("Show role icons on frames", function() return ns.db.frames.showRoleIcon end, setFrames("showRoleIcon"))
     check("Show incoming heal (prediction)", function() return ns.db.frames.showPrediction end, setFrames("showPrediction"))
     check("Show overheal", function() return ns.db.frames.showOverheal end, setFrames("showOverheal"))
     check("Low-HP pulse (only when health is readable)", function() return ns.db.frames.lowHpPulse end, setFrames("lowHpPulse"))
+
+    -- Threat bar ----------------------------------------------------------------------------------------------
+    local threatTitle = UI.Label(root, "Threat bar", "GameFontNormal")
+    threatTitle:SetPoint("TOPLEFT", 0, rowY - 4)
+    rowY = rowY - 24
+    local threatHint = UI.Label(root, "A thin strip above each health bar: yellow = high threat, orange = losing aggro, red = has aggro.",
+        "GameFontHighlightSmall")
+    threatHint:SetPoint("TOPLEFT", 0, rowY)
+    threatHint:SetWidth(520)
+    rowY = rowY - 20
+    local threatCheck = check("Show threat bar", function() return ns.db.frames.showThreatBar end, setFrames("showThreatBar"))
+    threatCheck:SetScript("OnEnter", function(btn)
+        GameTooltip:SetOwner(btn, "ANCHOR_RIGHT")
+        GameTooltip:AddLine("Threat bar")
+        GameTooltip:AddLine("A thin strip above each party member's health bar. It covers every mob in the fight.", 1, 1, 1, true)
+        GameTooltip:AddLine("Yellow: more threat than the tank, about to be attacked.", 1, 1, 0.47, true)
+        GameTooltip:AddLine("Orange: is tanking, but about to lose aggro.", 1, 0.6, 0, true)
+        GameTooltip:AddLine("Red: has aggro (being attacked).", 1, 0.2, 0.2, true)
+        GameTooltip:AddLine("Green (optional): safe, less threat than the tank or no threat yet while you are fighting.", 0.25, 0.8, 0.3, true)
+        GameTooltip:AddLine("No strip: no threat.", 0.7, 0.7, 0.7, true)
+        GameTooltip:Show()
+    end)
+    threatCheck:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    do
+        local s = UI.Slider(root, "Bar height", 2, 6, 1, function() return ns.db.frames.threatBarHeight end,
+            function(v)
+                ns.db.frames.threatBarHeight = math.floor(Util.ClampNumber(v, 2, 6, 3) + 0.5)
+                ns:Changed("frames")
+            end, 200)
+        s:SetPoint("TOPLEFT", 0, rowY)
+        track(s)
+        rowY = rowY - 28
+    end
+    check("Green when below the tank", function() return ns.db.frames.threatBarShowSafe end, setFrames("threatBarShowSafe"))
+    check("Only in combat", function() return ns.db.frames.threatBarOnlyCombat end, setFrames("threatBarOnlyCombat"))
 
     -- Range -------------------------------------------------------------------------------------------------
     local rangeTitle = UI.Label(root, "Range", "GameFontNormal")

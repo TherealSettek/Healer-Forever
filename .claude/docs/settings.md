@@ -30,6 +30,14 @@
 - The lock is shared: the raid uses `frames.locked`. The preview state (on/off, size) is runtime only and never saved.
 - "Reset raid defaults" in the Raid Layout tab resets everything under `raid` except `point`.
 
+## Threat bar settings (`frames`, added after 0.11.0, no schema bump)
+- `frames.showThreatBar` (boolean, default `false`), `frames.threatBarHeight` (whole number 2-6, default 3; clamped and rounded in
+  `buildDB`), `frames.threatBarOnlyCombat` (boolean, default `true`), `frames.threatBarShowSafe` (boolean, default `false`: green strip at
+  threat level 0, added 2026-11-20). Wrong types fall back to the default (generic `sanitize`).
+- New keys only, so old saves get the defaults and party frames look exactly as in 0.11.0 while the bar is off (the strip's textures
+  aren't even created then). Untouched values are not saved (sparse save).
+- Turning the bar on reserves `height + 2 (black edge) + 1 (gap) + border outset` px above the health bar (layout, out of combat only).
+
 ## Clean-install defaults (deliberate, see decisions.md)
 - Bindings: only plain Left = target and plain Right = menu.
 - One empty preset, "Default". No buff buttons appear until the user adds rules.

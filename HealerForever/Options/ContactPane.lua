@@ -84,5 +84,6 @@ Options:RegisterPane("help", "Help & Contact", 8, function(outer)
         "- Addons can't detect line of sight; range shows distance only.",
         "- Settings are saved on /reload or logout.",
         "- Casts never fall back to you: a click on a member only ever targets that member.",
+        "- Threat bar (Frames & Bars): yellow = about to pull aggro, orange = tank losing aggro, red = has aggro.",
     }, "\n"), quick)
 end)

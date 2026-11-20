@@ -24,7 +24,7 @@ directly. The namespace is `local ADDON_NAME, ns = ...`.
 | `ClickCast/Bindings.lua` | Binding keys `"<mods>|<button>"` (mods ordered alt,ctrl,meta,shift). Builds strict macros (BuildMacroText, BuildResOnlyMacro, BuildTargetMacro), attributes, override keys. `EXAMPLE_PALADIN` |
 | `ClickCast/ClickCast.lua` | Applies bindings to the unit buttons: plain secure attributes, the **Cmd swap state driver** (`[mod:meta]`), and hover override bindings via SecureHandlerWrapScript |
 | `Core.lua` | DEFAULTS, error capture (LogError/Safe/Wrap/NewFrame/SecureHook), event dispatch, AfterCombat queue, sanitize, migrations, buildDB, BuildSaveTable (sparse save), AddonVersion, ns.Exists/ns.InGroup/ns.InCombat, SpellKnown |
-| `Frames/UnitFrames.lua` | Party frames (SecureUnitButtonTemplate), layout (horizontal/vertical, pets), bar borders, health/power/prediction, range states (badge style), target glow, aggro, dead/ghost/offline, tooltip, `/hf debug click` |
+| `Frames/UnitFrames.lua` | Party frames (SecureUnitButtonTemplate), layout (horizontal/vertical, pets), bar borders, health/power/prediction, range states (badge style), target glow, aggro border + optional threat strip (`RefreshThreatStrip`, last readable level in a side table, colours from `GetThreatStatusColor` at load), dead/ghost/offline, tooltip, `/hf debug click` |
 | `Frames/Auras.lua` | Aura enumeration (secret-safe fallback chain), buff and debuff zones, icons with timers, per-icon tooltips, `/hf debug auras` |
 | `Options/*` | Options window (Window, Widgets, Panes, BuffPresetsPane, SpellsPane, BindingsPane, MinimapPane), slash commands (Slash.lua) |
 | `Minimap/MinimapButton.lua` | Gold-ring button with heal icon, status dot (missing buffs), lock badge, preset initial, tooltip, drag along the rim |

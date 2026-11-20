@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Healer Forever Threat Bar</title>
+<style>
+:root{--gold:#ffd100;--muted:#9a927e;--heal:#7dff9b;--inr:#4cff6a;--oor:#c86a5a;--hid:#6a86a8;
+  --t0:#b0b0b0;--t1:#ffff78;--t2:#ff9900;--t3:#ff0000;--pctc:#d84a3a}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font-family:"Friz Quadrata TT",Georgia,"Times New Roman",serif;color:#e8e2d0;background:radial-gradient(ellipse at 30% 70%,#3b4a2a 0%,#1f2a18 35%,#0d120b 70%),#0d120b;padding:16px}
+a{color:var(--gold)}
+h1{margin:0 0 4px;font-size:20px;color:var(--gold);font-weight:normal;text-shadow:1px 1px 1px #000}
+.sub{font-size:12px;color:#ffffffa0;margin-bottom:12px;line-height:1.5}
+.panel{background:#000000c8;border:2px solid #8a8a94;border-radius:4px;padding:10px 12px;margin:10px 0}
+.panel h3{margin:0 0 6px;font-size:14px;color:var(--gold);font-weight:normal}
+.path{font-size:11px;color:var(--muted);margin-bottom:8px}
+.pg{display:grid;gap:10px 22px;grid-template-columns:repeat(auto-fit,minmax(330px,1fr))}
+.opt{font-size:12px}
+.opt .r{display:flex;align-items:center;gap:8px;justify-content:space-between}
+.opt .r>label:first-child{min-width:150px}
+.opt .hint{font-size:11px;color:var(--muted);line-height:1.45;margin-top:3px}
+.opt .hint b{color:#cfc7aa;font-weight:normal}
+input[type=range]{accent-color:#d8a83a;width:110px}
+.v{min-width:30px;text-align:right;color:var(--gold);font-size:11px}
+select{background:#000;color:#e8e2d0;border:2px solid #6a6a74;border-radius:3px;padding:2px 5px;font:12px Georgia,serif}
+input[type=checkbox]{accent-color:#d8a83a;width:15px;height:15px}
+.btn{font:11px Georgia,serif;color:var(--gold);background:linear-gradient(#b02a2a,#6a1010 50%,#3a0606);border:1px solid #000;border-radius:4px;padding:3px 9px;cursor:pointer;box-shadow:inset 0 0 0 1px #d8a0a055}
+.btn.off{background:linear-gradient(#3a3a40,#1a1a1e);color:#ccc}
+.sec{font-size:12px;color:var(--gold);border-bottom:1px solid #4a4a52;margin:10px 0 6px;padding-bottom:2px}
+.cap{margin-top:10px;font-size:11px;color:var(--muted);line-height:1.5;border-top:1px solid #3a3a42;padding-top:6px}
+.cap code,.note code,.hint code{color:#cfc7aa;font:11px ui-monospace,Menlo,monospace}
+.cap b{color:#cfc7aa;font-weight:normal}
+.pro{color:#8fd88f}.con{color:#e09080}
+.note{background:#1a1408cc;border:1px solid #6a5a2a;border-radius:4px;padding:8px 10px;font-size:12px;color:#e8d9a8;margin:12px 0;line-height:1.55}
+.cols{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(720px,1fr));align-items:start}
+.col{background:#000000a0;border:2px solid #6a6a74;border-radius:4px;padding:10px 12px;cursor:pointer}
+.col.sel{border-color:var(--gold);box-shadow:0 0 8px #ffd10066}
+.col h2{margin:0 0 2px;font-size:15px;color:var(--gold);font-weight:normal}
+.col .desc{font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.45}
+.edge-l{font-size:10px;color:var(--muted);margin:8px 0 2px}
+
+/* ---- party (original bars + bar borders, range badge B) ---- */
+.party{display:flex;gap:8px;align-items:flex-start;flex-wrap:nowrap}
+.ou{width:132px;display:flex;flex-direction:column;position:relative;cursor:pointer}
+.ou.oor{opacity:.72}
+.ou.hid{opacity:.75}
+.oa{display:flex;gap:2px;min-height:29px;padding-bottom:11px;align-items:flex-start}
+.ico{position:relative;width:16px;height:16px;display:grid;place-items:center;font-size:8px;font-weight:bold;color:#fff;border:1px solid #000;flex:none;margin-right:4px}
+.ico .tm{position:absolute;bottom:-11px;left:-3px;right:-3px;text-align:center;font-size:9px;font-weight:bold;color:#fff;text-shadow:0 0 2px #000,1px 1px 0 #000;line-height:1}
+.oa.db .ico{width:20px;height:20px}
+.oa.db{padding-bottom:0;margin-top:3px;min-height:20px}
+.oa.db .ico .tm{color:#ffd100}
+/* threat strip slot: always reserves its height so the bars never jump */
+.tslot{position:relative;margin-bottom:3px}
+.thr{position:absolute;left:0;right:0;bottom:0;top:0;box-shadow:0 0 0 1px #000;background:transparent}
+.thr.track{background:#2c2c2c}
+.thr.unk{background:repeating-linear-gradient(90deg,#4a5a70 0 4px,#2c2c2c 4px 7px)}
+.thr i{position:absolute;left:0;top:0;bottom:0;background-image:linear-gradient(rgba(255,255,255,.45),rgba(255,255,255,0) 60%,rgba(0,0,0,.25))}
+.tp{position:absolute;right:1px;bottom:100%;margin-bottom:1px;font-size:10px;font-weight:bold;color:#fff;text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;line-height:1;pointer-events:none;white-space:nowrap}
+.tp.hi{color:var(--t2)}
+.obar{position:relative}
+.ohp{position:relative;height:44px;background:#2a0d0d;overflow:hidden;border:2px solid #8a8aa0;border-radius:5px;box-shadow:0 0 0 1px #000,inset 0 0 0 1px #000}
+.fill{position:absolute;left:0;top:0;bottom:0;background-color:var(--cc);background-image:linear-gradient(rgba(255,255,255,.38),rgba(255,255,255,.04) 48%,rgba(0,0,0,.28))}
+.nm{position:absolute;left:5px;top:3px;font-size:12px;color:#fff;text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;z-index:1;white-space:nowrap;max-width:84px;overflow:hidden}
+.vl{position:absolute;right:5px;top:3px;font-size:11px;color:#fff;text-shadow:1px 1px 1px #000;z-index:1}
+.opw{height:8px;background:#111;position:relative;margin-top:2px;border:2px solid #8a8aa0;border-radius:4px;box-shadow:0 0 0 1px #000,inset 0 0 0 1px #000;overflow:hidden}
+.opw i{position:absolute;left:0;top:0;bottom:0;background-image:linear-gradient(rgba(255,255,255,.38),rgba(255,255,255,.04) 48%,rgba(0,0,0,.28))}
+.ou:hover .obar{outline:1px solid #fff;outline-offset:1px}
+.ou.tgt .obar{outline:1px solid var(--gold);outline-offset:1px;filter:drop-shadow(0 0 5px var(--gold))}
+.ou.aggro .obar{filter:drop-shadow(0 0 5px #ff3030)}
+.ou.tgt.aggro .obar{filter:drop-shadow(0 0 5px var(--gold)) drop-shadow(0 0 4px #ff3030)}
+.ou.inr .ohp{box-shadow:0 0 0 1px #000,inset 4px 0 0 #4cff6a}
+.ou.oor .ohp,.ou.oor .opw{border-style:dashed;border-color:#8a8a8a}
+.ou.hid .ohp,.ou.hid .opw{border-style:dotted;border-color:var(--hid)}
+.ou.hid .fill,.ou.hid .opw i{filter:grayscale(1) brightness(.6)}
+.hatchx{position:absolute;inset:0;z-index:2;background:repeating-linear-gradient(45deg,#1a2a4080 0 3px,transparent 3px 7px),repeating-linear-gradient(-45deg,#1a2a4080 0 3px,transparent 3px 7px);pointer-events:none}
+.badge{position:absolute;left:50%;top:62%;transform:translate(-50%,-50%);z-index:4;font-size:9px;letter-spacing:.5px;color:#fff;background:#000000d0;border:1px solid var(--bc,#c86a5a);border-radius:9px;padding:1px 7px;white-space:nowrap;pointer-events:none}
+.deadfx{position:absolute;inset:0;z-index:3;display:flex;align-items:center;justify-content:center;background:#10101099;font-weight:bold;letter-spacing:2px;color:#d04040;text-shadow:-1px -1px 0 #000,1px 1px 0 #000;font-size:13px;pointer-events:none}
+.deadfx.gh{color:#b8c0c8}
+.tag{position:absolute;right:4px;bottom:1px;font-size:9px;color:#ffb070;z-index:5;text-shadow:1px 1px 0 #000}
+@keyframes lowpulse{0%,100%{opacity:0}50%{opacity:.55}}
+.lowfx{position:absolute;inset:0;background:#ff1a1a;mix-blend-mode:screen;animation:lowpulse 1s infinite;pointer-events:none;z-index:2}
+.off-msg{font-size:12px;color:var(--muted);padding:6px 0}
+
+/* simulate table */
+.sim{width:100%;border-collapse:collapse;font-size:12px}
+.sim td,.sim th{padding:3px 6px;border-bottom:1px solid #2a2a30;text-align:left;white-space:nowrap}
+.sim th{color:var(--muted);font-weight:normal;font-size:11px}
+.lv{font:11px Georgia,serif;width:24px;height:20px;border:1px solid #000;border-radius:3px;cursor:pointer;color:#000;opacity:.45;margin-right:2px}
+.lv.on{opacity:1;outline:2px solid #fff;outline-offset:0}
+.legend{display:flex;gap:14px;font-size:11px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.sw{display:inline-block;width:22px;height:5px;vertical-align:middle;margin-right:5px;box-shadow:0 0 0 1px #000}
+</style>
+</head>
+<body>
+<h1>Healer Forever threat bar (party frames)</h1>
+<div class="sub">A new threat strip <b>above</b> each party member's health bar (the power bar stays below). Built on the approved look: the original bars with a tooltip-style border around the health and power bars, and range badge style B.
+Hover a bar, click a bar to target it, click a column to pick that style. Party only for now; the same strip could later be reused on the raid frames.
+&middot; <a href="index.html">Back to the main mockup</a></div>
+
+<div class="panel" id="panel">
+  <h3>Options &gt; Frames &gt; Threat bar</h3>
+  <div class="path">Each control maps 1:1 to a future addon option, labelled as it would appear in the addon. The "Your settings" row below uses all of them; the four comparison columns always show their own style.</div>
+  <div class="pg">
+    <div class="opt"><div class="r"><label for="o-show">Show threat bar</label><input type="checkbox" id="o-show" data-k="show"></div>
+      <div class="hint">Default off, so nothing changes for people who update. Turn on to see the strip in "Your settings".</div></div>
+    <div class="opt"><div class="r"><label for="o-style">Style</label><select id="o-style" data-k="style"><option value="A">A. Level strip</option><option value="B">B. Level strip with track</option><option value="C">C. Threat % on your target</option><option value="D">D. Level strip + top %</option></select></div>
+      <div class="hint">A and B are the same strip; B just keeps a grey track. C measures one mob only. D adds one number to A.</div></div>
+    <div class="opt"><div class="r"><label for="o-h">Bar height</label><span><input type="range" id="o-h" data-k="h" min="2" max="6"> <span class="v" data-v="h"></span></span></div>
+      <div class="hint">2-6 px. Thin keeps the frames compact; 4+ is easier to read at a glance. The space is always reserved, so bars never jump when the strip appears.</div></div>
+    <div class="opt"><div class="r"><label for="o-hide">Hide when no threat</label><input type="checkbox" id="o-hide" data-k="hide"></div>
+      <div class="hint">On: nothing drawn at level 0 (or 0 %). Off: a dark grey track stays visible. This is the only difference between A and B.</div></div>
+    <div class="opt"><div class="r"><label for="o-comb">Only in combat</label><input type="checkbox" id="o-comb" data-k="comb"></div>
+      <div class="hint">Hides the strip out of combat. Uses your own combat state (<code>PLAYER_REGEN_DISABLED/ENABLED</code>), which is never secret.</div></div>
+    <div class="opt"><div class="r"><label for="o-aggro">Red aggro border</label><input type="checkbox" id="o-aggro" data-k="aggro"></div>
+      <div class="hint">The existing red glow at level 2-3 (already in the addon). Keep it with the strip, or turn it off if the strip is enough.</div></div>
+  </div>
+
+  <div class="sec">Simulate (mockup only, not addon options)</div>
+  <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:12px;margin-bottom:6px;align-items:center">
+    <label><input type="checkbox" id="s-comb" checked> You are in combat</label>
+    <label><input type="checkbox" id="s-mob" checked> A hostile target to measure against (C and D)</label>
+    <label><input type="checkbox" id="s-secret"> Values are secret (combat lock)</label>
+    <button class="btn off" id="s-reset">Reset simulation</button>
+  </div>
+  <table class="sim" id="simt"></table>
+  <div class="legend">
+    <span><i class="sw" style="background:var(--t1)"></i>1 = more threat than the tank, not tanking yet (about to pull)</span>
+    <span><i class="sw" style="background:var(--t2)"></i>2 = tanking, but someone else is about to take it</span>
+    <span><i class="sw" style="background:var(--t3)"></i>3 = tanking securely (has aggro)</span>
+    <span><i class="sw" style="background:#2c2c2c"></i>0 = no threat worth showing</span>
+  </div>
+</div>
+
+<div class="panel">
+  <h3>Your settings</h3>
+  <div class="path">The party exactly as the options above would draw it in game.</div>
+  <div id="mine"></div>
+</div>
+
+<div class="cols" id="cols"></div>
+
+<div class="note"><b>What the WoW API gives us, and the limits:</b><br>
+&bull; <code>UnitThreatSituation(unit)</code> returns 0-3 (or nil) for the unit's worst threat on <b>any</b> mob. It can be a <b>secret value</b> in combat: Lua can't compare it, so the addon can't pick a colour with if/else.
+Plan for A, B and D: one strip texture coloured by a game colour curve (<code>C_CurveUtil.CreateColorCurve</code> with step points 0/1/2/3, then <code>SetVertexColor</code> with the result), or three stacked strips (yellow, orange, red) each shown through its alpha from a step curve, the same trick the raid "missing HP" text already uses. Our code never reads the number. Fallback if the game refuses: keep the last known colour (what the red aggro border does today). <i>Unverified on the real client.</i><br>
+&bull; <code>UnitDetailedThreatSituation(unit, "target")</code> returns isTanking, status, scaled %, raw %, threat value <b>against one mob</b>. The fill can go straight into <code>StatusBar:SetValue</code> and the number into <code>FontString:SetText</code> even when secret, but our code can't colour it by thresholds, round it, or compare members (so D's "highest" needs readable values). A game colour curve might allow threshold colours later; not planned here. <i>Unverified on the real client.</i><br>
+&bull; Healers usually target friends, so "your target" is often not a mob. A fallback to the tank's target (<code>party1target</code>) is possible but is still one mob only.<br>
+&bull; Dead, ghost and not-visible members: the strip hides (B keeps an empty/striped track). Out of range: the strip is a child of the bar, so it dims with the bar (range badge B).<br>
+&bull; Party only in this mockup; the same strip could later be reused on the raid frames.</div>
+
+<script>
+try{localStorage.removeItem('hf-threat-bar')}catch(_){}
+const CC={Warrior:'#C69B6D',Paladin:'#F48CBA',Rogue:'#FFF468',Mage:'#3FC7EB',Priest:'#FFFFFF'};
+const PWC={mana:'#0000ff',rage:'#ff0000',energy:'#ffff00'};
+const LVC=['#2c2c2c','#ffff78','#ff9900','#ff0000'];
+const LVN=['No threat','High threat (about to pull)','Tanking, losing it','Has aggro'];
+const ROLE={T:'🛡',H:'✚',D:'⚔'};
+const BASE=[
+ {id:'p',n:'Lightwynn',cls:'Paladin',role:'H',hp:92,max:5480,pw:.74,pt:'mana',lv:0,pct:12,st:'alive',buffs:[['K','#c89b3c','52m'],['W','#7a6ad8','14m']],deb:[]},
+ {id:'w',n:'Brumgar',cls:'Warrior',role:'T',hp:58,max:9124,pw:.45,pt:'rage',lv:3,pct:100,st:'alive',buffs:[['M','#c89b3c','47m'],['F','#c0c0e0','26m'],['S','#5a8ad8','9s']],deb:[['S','#c03030','12s']]},
+ {id:'r',n:'Sneakle',cls:'Rogue',role:'D',hp:74,max:4210,pw:.6,pt:'energy',lv:1,pct:85,st:'out',buffs:[['M','#c89b3c','44m'],['F','#c0c0e0','26m']],deb:[]},
+ {id:'m',n:'Ilvaris',cls:'Mage',role:'D',hp:18,max:3870,pw:.81,pt:'mana',lv:2,pct:64,st:'low',buffs:[['I','#5ab0e8','49m'],['F','#c0c0e0','26m']],deb:[['P','#3c8cff','8s']]},
+ {id:'h',n:'Mirethel',cls:'Priest',role:'H',hp:0,max:3960,pw:0,pt:'mana',lv:0,pct:0,st:'dead',buffs:[],deb:[]},
+];
+const EDGE=[
+ {id:'e1',n:'Ilvaris',cls:'Mage',role:'D',hp:66,max:3870,pw:.5,pt:'mana',lv:2,pct:70,st:'hid',buffs:[],deb:[],label:'Not visible (had level 2)'},
+ {id:'e2',n:'Brumgar',cls:'Warrior',role:'T',hp:0,max:9124,pw:0,pt:'rage',lv:3,pct:100,st:'ghost',buffs:[],deb:[],label:'Ghost (had level 3)'},
+ {id:'e3',n:'Sneakle',cls:'Rogue',role:'D',hp:0,max:4210,pw:0,pt:'energy',lv:1,pct:85,st:'deadoor',buffs:[],deb:[],label:'Dead and out of range'},
+ {id:'e4',n:'Lightwynn',cls:'Paladin',role:'H',hp:40,max:5480,pw:.3,pt:'mana',lv:1,pct:91,st:'low',buffs:[],deb:[],label:'Low HP, level 1'},
+];
+let M=JSON.parse(JSON.stringify(BASE));
+const DEF={show:false,style:'A',h:3,hide:true,comb:true,aggro:true};
+let O={...DEF};
+const SIM={comb:true,mob:true,secret:false};
+let target='w';
+const STY={
+ A:{t:'A. Level strip (hidden at 0)',d:'A thin full-width strip whose colour is the threat level. Nothing is drawn at level 0, so calm members stay clean. It is a state, not an amount, so it is always full width.',
+   cap:'<span class="pro">+ Readable at a glance, safe with secret values (stacked textures + alpha), no target needed, covers every mob.</span><br><span class="con">- Says nothing about how close someone is to pulling; level 0 and "no data" look the same.</span><br><b>Textures:</b> strip <code>Interface\\TargetingFrame\\UI-StatusBar</code> with <code>SetVertexColor</code> (or flat <code>Interface\\Buttons\\WHITE8X8</code>), 1 px black edge from <code>WHITE8X8</code>. Colours from <code>GetThreatStatusColor(1..3)</code> read once at load, never with a secret value.'},
+ B:{t:'B. Level strip with track',d:'Same strip, but a dark grey track is always there. Level 1-3 fills it with the level colour. You always see where the threat info lives.',
+   cap:'<span class="pro">+ Stable look, you can tell "no threat" from "strip turned off"; not-visible members get a striped "unknown" track.</span><br><span class="con">- Five grey lines on a calm party is visual noise; same "no amount" limit as A.</span><br><b>Textures:</b> track <code>Interface\\Buttons\\WHITE8X8</code> tinted 0.17 grey under the A strip. Striped unknown track needs a small tiled texture shipped with the addon (same one as the range "not visible" hatch).'},
+ C:{t:'C. Threat % on your target',d:'Fill width = scaled threat % against your current target, with a small "85%" text. One colour for everyone, because a secret % can\'t be compared to thresholds.',
+   cap:'<span class="pro">+ Shows how close each DPS is to pulling, like a mini threat meter.</span><br><span class="con">- Works against one mob only (your target); healers mostly target friends, so it is often empty. No warning colours. Value may be secret in combat: fill and text still work via setters, but no rounding (may show decimals). Unverified on the real client.</span><br><b>API:</b> <code>UnitDetailedThreatSituation(unit,"target")</code> &rarr; <code>StatusBar:SetValue(scaledPct)</code>, text <code>FontString:SetText(scaledPct)</code> + a separate "%" FontString (no string joining on a secret). Font <code>GameFontHighlightSmall</code> with OUTLINE. Bar <code>Interface\\TargetingFrame\\UI-StatusBar</code>.'},
+ D:{t:'D. Level strip + top %',d:'Strip A for everyone, plus a % text only on the non-tank closest to pulling your target. One number tells the healer who is about to get hit next.',
+   cap:'<span class="pro">+ Calm look of A with one useful number; the coloured strip still works with secret values.</span><br><span class="con">- Finding "the highest" means comparing numbers, which is forbidden on secret values: in combat lock the % text simply disappears and only the strip remains. One mob only for the %.</span><br><b>API:</b> strip as A; % from <code>UnitDetailedThreatSituation(unit,"target")</code>, only when <code>issecret()</code> is false for all members. Text <code>GameFontNormalSmall</code> (orange tint) with OUTLINE.'},
+};
+const isGone=m=>m.st==='dead'||m.st==='ghost'||m.st==='deadoor';
+function stripFor(m,sty,cfg,party){
+  const h=cfg.h, hideZero=cfg.hide;
+  const slot=inner=>`<div class="tslot" style="height:${h}px">${inner}</div>`;
+  if(cfg.comb&&!SIM.comb)return slot('');
+  if(isGone(m))return slot(sty==='B'?'<div class="thr track"></div>':'');
+  if(m.st==='hid')return slot(sty==='A'||sty==='D'||hideZero?'':'<div class="thr unk" title="Unknown: not visible"></div>');
+  if(sty==='C'){
+    const p=SIM.mob?m.pct:0;
+    if(p<=0&&hideZero)return slot('');
+    return slot(`<div class="thr track"><i style="width:${p}%;background-color:var(--pctc)"></i></div>${p>0?`<span class="tp">${p}%</span>`:''}`);
+  }
+  const lv=m.lv;
+  let txt='';
+  if(sty==='D'&&SIM.mob&&!SIM.secret){
+    const cands=party.filter(x=>!isGone(x)&&x.st!=='hid'&&x.lv!==3&&x.pct>0);
+    const top=cands.sort((a,b)=>b.pct-a.pct)[0];
+    if(top&&top.id===m.id)txt=`<span class="tp hi">${m.pct}%</span>`;
+  }
+  if(lv===0)return slot((hideZero?'':'<div class="thr track"></div>')+txt);
+  return slot(`<div class="thr track"><i style="width:100%;background-color:${LVC[lv]}"></i></div>${txt}`);
+}
+function unit(m,sty,cfg,party){
+  const gone=isGone(m), oor=m.st==='out'||m.st==='deadoor', hid=m.st==='hid', low=m.st==='low'||(m.st==='alive'&&m.hp<30);
+  const hp=gone?0:m.hp, val=hid?'<span style="color:var(--hid)">?</span>':gone?'':Math.round(m.max*hp/100);
+  let over='';
+  if(m.st==='dead')over='<div class="deadfx">DEAD</div>';
+  if(m.st==='deadoor')over='<div class="deadfx">DEAD</div><div class="tag">can\'t resurrect</div>';
+  if(m.st==='ghost')over='<div class="deadfx gh">GHOST</div>';
+  if(m.st==='out')over='<div class="badge">OUT OF RANGE</div>';
+  if(hid)over='<div class="hatchx"></div><div class="badge" style="--bc:var(--hid);color:var(--hid)">NOT VISIBLE</div>';
+  if(low)over+='<div class="lowfx"></div>';
+  const aggro=cfg.aggro&&!gone&&!hid&&m.lv>=2&&SIM.comb;
+  const strip=sty?stripFor(m,sty,cfg,party):`<div class="tslot" style="height:${cfg.h}px"></div>`;
+  const buffs=`<div class="oa"${m.label?' style="min-height:6px;padding-bottom:0"':''}>${m.buffs.map(b=>`<div class="ico" style="background:${b[1]}">${b[0]}<span class="tm">${b[2]}</span></div>`).join('')}</div>`;
+  const debs=`<div class="oa db">${m.deb.map(b=>`<div class="ico" style="background:#2a0a0a;border:2px solid ${b[1]}">${b[0]}<span class="tm">${b[2]}</span></div>`).join('')}</div>`;
+  const cls=['ou',oor?'oor':'',hid?'hid':'',(!oor&&!hid&&!gone)?'inr':'',target===m.id?'tgt':'',aggro?'aggro':''].join(' ');
+  return `<div class="${cls}" data-id="${m.id}" style="--cc:${CC[m.cls]}">${m.label?`<div class="edge-l">${m.label}</div>`:''}${buffs}${strip}<div class="obar"><div class="ohp"><div class="fill" style="width:${hp}%"></div><div class="nm">${ROLE[m.role]} ${m.n}</div><div class="vl">${val}</div>${over}</div><div class="opw"><i style="width:${gone?0:m.pw*100}%;background-color:${PWC[m.pt]}"></i></div></div>${debs}</div>`;
+}
+function partyRow(sty,cfg,list){return `<div class="party">${list.map(m=>unit(m,sty,cfg,list)).join('')}</div>`}
+function draw(){
+  const mine=document.getElementById('mine');
+  mine.innerHTML=O.show?partyRow(O.style,O,M):partyRow(null,O,M).replace('<div class="party">','<div class="off-msg">Threat bar is off (the default). Turn on "Show threat bar" to see it here.</div><div class="party">');
+  document.getElementById('cols').innerHTML=['A','B','C','D'].map(k=>{
+    const cfg={...O,hide:k==='A'||k==='D'?true:k==='B'?false:O.hide};
+    const S=STY[k];
+    return `<div class="col ${O.style===k?'sel':''}" id="col-${k}" data-sty="${k}"><h2>${S.t}</h2><div class="desc">${S.d}</div>${partyRow(k,cfg,M)}<div class="edge-l" style="color:var(--gold)">More states</div>${partyRow(k,cfg,EDGE)}<div class="cap">${S.cap}</div></div>`;
+  }).join('');
+}
+function simTable(){
+  const t=document.getElementById('simt');
+  t.innerHTML=`<tr><th>Member</th><th>Threat level (UnitThreatSituation)</th><th>Threat % on your target (C, D)</th><th>State</th></tr>`+M.map((m,i)=>`<tr>
+   <td style="color:${CC[m.cls]}">${ROLE[m.role]} ${m.n}${m.id==='p'?' (you)':''}</td>
+   <td>${[0,1,2,3].map(l=>`<button class="lv ${m.lv===l?'on':''}" data-i="${i}" data-lv="${l}" style="background:${l?LVC[l]:'#777'}" title="${LVN[l]}">${l}</button>`).join('')} <span style="color:var(--muted);font-size:11px">${LVN[m.lv]}</span></td>
+   <td><input type="range" min="0" max="130" value="${m.pct}" data-i="${i}" data-pct> <span class="v">${m.pct}%</span></td>
+   <td><select data-i="${i}" data-st>${[['alive','Alive'],['low','Low HP'],['out','Out of range'],['hid','Not visible'],['dead','Dead'],['ghost','Ghost']].map(([v,l])=>`<option value="${v}" ${m.st===v?'selected':''}>${l}</option>`).join('')}</select></td></tr>`).join('');
+}
+const P=document.getElementById('panel');
+function sync(){P.querySelectorAll('[data-k]').forEach(el=>{const v=O[el.dataset.k];if(el.type==='checkbox')el.checked=v;else el.value=v});P.querySelectorAll('[data-v]').forEach(el=>el.textContent=O[el.dataset.v]+' px')}
+P.addEventListener('input',e=>{
+  const el=e.target,k=el.dataset.k;
+  if(k){O[k]=el.type==='checkbox'?el.checked:el.type==='range'?+el.value:el.value;sync();draw();return}
+  if(el.dataset.pct!==undefined){const m=M[+el.dataset.i];m.pct=+el.value;el.nextElementSibling.textContent=m.pct+'%';draw();return}
+  if(el.dataset.st!==undefined){const m=M[+el.dataset.i];m.st=el.value;if(m.st==='low')m.hp=18;else if(m.st==='alive'&&m.hp<30)m.hp=BASE[+el.dataset.i].hp>=30?BASE[+el.dataset.i].hp:70;draw();return}
+  if(el.id==='s-comb'){SIM.comb=el.checked;draw()}
+  if(el.id==='s-mob'){SIM.mob=el.checked;draw()}
+  if(el.id==='s-secret'){SIM.secret=el.checked;draw()}
+});
+P.addEventListener('click',e=>{
+  const b=e.target.closest('.lv');if(b){M[+b.dataset.i].lv=+b.dataset.lv;simTable();draw();return}
+  if(e.target.id==='s-reset'){M=JSON.parse(JSON.stringify(BASE));Object.assign(SIM,{comb:true,mob:true,secret:false});
+    document.getElementById('s-comb').checked=true;document.getElementById('s-mob').checked=true;document.getElementById('s-secret').checked=false;simTable();draw()}
+});
+document.addEventListener('click',e=>{
+  const u=e.target.closest('.ou');if(u){target=u.dataset.id;draw();return}
+  const c=e.target.closest('.col');if(c){O.style=c.dataset.sty;sync();draw()}
+});
+sync();simTable();draw();
+const zq=+new URLSearchParams(location.search).get('zoom');if(zq>0&&zq<=4)document.body.style.zoom=zq;
+</script>
+</body>
+</html>

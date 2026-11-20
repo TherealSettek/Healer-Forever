@@ -24,6 +24,11 @@ ns.DEFAULTS = {
         showRoleIcon = true,
         locked = false,
         lowHpPulse = false,
+        -- threat strip above the health bar (party members only); off by default so older party frames look the same
+        showThreatBar = false,
+        threatBarHeight = 3,
+        threatBarOnlyCombat = true,
+        threatBarShowSafe = false,   -- green strip for level 0 (in the fight, less threat than the tank)
         range = {
             style = "badge", dim = 72, badge = true, healable = true,
             healableColor = { r = 0.3, g = 0.9, b = 0.4 }, outColor = { r = 0.6, g = 0.6, b = 0.6 },
@@ -638,6 +643,7 @@ local function buildDB(saved)
     db.frames.border = Util.NormalizeBorder(db.frames.border)
     db.frames.spacing = Util.ClampNumber(db.frames.spacing, 0, 24, 6)
     db.frames.range = Util.NormalizeRange(db.frames.range)
+    db.frames.threatBarHeight = math.floor(Util.ClampNumber(db.frames.threatBarHeight, 2, 6, 3) + 0.5)
     local a = db.auras
     local function pick(list, value, fallback)
         for _, v in ipairs(list) do

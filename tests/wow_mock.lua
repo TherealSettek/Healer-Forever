@@ -1257,7 +1257,23 @@ local function buildGlobals()
         return u(unit) and ("Player-1-" .. unit) or nil
     end)
     g("UnitGroupRolesAssigned", function(unit) local x = u(unit); if S.secret or S.secretAll then return M.newSecret() end return x and x.role or "NONE" end)
-    g("UnitThreatSituation", function(unit) if S.secretThreat or S.secretAll then return M.newSecret() end return (S.threat and S.threat[unit]) or 0 end)
+    -- S.threatNil = { [unit] = true }: the real API answers nil (no threat data for that unit)
+    g("UnitThreatSituation", function(unit)
+        if S.secretThreat or S.secretAll then return M.newSecret() end
+        if S.threatNil and S.threatNil[unit] then return nil end
+        return (S.threat and S.threat[unit]) or 0
+    end)
+    -- like the client: r, g, b for a threat status 0..3 (0 grey, 1 yellow, 2 orange, 3 red); nil for anything else.
+    -- S.threatColors = { [status] = { r, g, b } } overrides; S.threatColorsSecret returns secrets; S.threatColorsError raises.
+    -- The addon reads it once at load, so set these (or replace the global) in the boot setup, before the files load.
+    g("GetThreatStatusColor", function(status)
+        if S.threatColorsError then error("GetThreatStatusColor: boom") end
+        if S.threatColorsSecret then return M.newSecret(), M.newSecret(), M.newSecret() end
+        local c = (S.threatColors and S.threatColors[status])
+            or ({ [0] = { 0.69, 0.69, 0.69 }, { 1, 1, 0.47 }, { 1, 0.6, 0 }, { 1, 0, 0 } })[status]
+        if not c then return nil end
+        return c[1], c[2], c[3]
+    end)
     g("UnitIsAFK", function() return false end)
     g("UnitAffectingCombat", function(unit) if S.secret or S.secretAll then return M.newSecret() end return S.unitCombat and S.unitCombat[unit] == true or false end)
     g("UnitLevel", function() return 80 end)

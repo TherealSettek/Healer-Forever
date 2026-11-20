@@ -98,3 +98,17 @@
 - `/hf perf` was added after a user said the game got slow with many addons and Questie's minimap circles vanished after enabling Healer
   Forever. Our error log only sees our own errors, so the command shows numbers: CPU/memory per addon (ours vs the others) and, with
   `/hf perf start`/`stop`, timings of our own hot paths. It's also in `/hf report` and `/hf copy`. Nothing is sent anywhere.
+
+## Threat bar on party frames (2026-11-19)
+- Mockup `mockup/threat-bar.html`, owner picked **option 4: style A now, a threat % later**.
+- **Style A "level strip":** a thin full-width strip **above** the health bar (power bar stays below), coloured by
+  `UnitThreatSituation(unit)` with no mob argument, i.e. the worst status across every mob fighting the group:
+  1 yellow (more threat than the tank, not tanking yet), 2 orange (tanking, about to lose it), 3 red (has aggro). Level 0 = nothing drawn.
+  No %: A is a state, not an amount, so it is always full width.
+- Options (Frames & Bars): **Show threat bar** (default **off**, so party frames from older versions look the same), **Bar height** 2-6 px
+  (default 3), **Only in combat** (default on). Style B (grey track) and the per-style picker were dropped; the existing red aggro border is unchanged.
+- **Later (not built):** "show threat %" against a chosen mob (tank's target / focus / boss1) via `UnitDetailedThreatSituation`. It only
+  exists per mob and may be secret in combat; to be checked on the real client first.
+- **Green option (owner added 2026-11-20):** "Green when below the tank" (`frames.threatBarShowSafe`, default off) draws a fixed green
+  strip (0.25, 0.8, 0.3) at level 0 (in the fight, less threat than the tank). Owner follow-up (same day): getting on a threat list takes
+  a few seconds, so `nil` is green too **while you are fighting** (own combat state); out of a fight `nil` stays hidden.

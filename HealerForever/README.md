@@ -39,6 +39,11 @@ The TOC uses `## Interface: 16001, 120005`. 16001 is the community-reported Fore
   None / Thin / Tooltip / Vanilla gold, thickness 1-4, colour class / black / gold / custom. Buffs sit above the bar and
   debuffs below (larger, dispel-coloured borders, timers); positions, sizes, icons per row and grow direction are in
   Buffs & Debuffs. Target glow, red aggro border, out-of-range dimming, dead/ghost/offline state, optional low-HP pulse.
+- Optional threat bar on the party frames (Options > Frames & Bars > Threat bar, off by default): a thin strip above each
+  member's health bar, yellow = more threat than the tank, orange = tanking but about to lose it, red = has aggro,
+  optional green = safe, below the tank or no threat yet in a fight ("Green when below the tank", off by default). It covers every mob in the
+  fight (no target needed). Height 2-6 px, "Only in combat" (default on). When the game hides the
+  threat state in combat, the strip keeps the last known colour, like the red aggro border.
 - Health bar (class / custom / gradient colour), health text (percent / current / deficit), power bar,
   incoming-heal prediction bar and overheal, range dimming, dead / ghost / offline states.
 - Buffs (left) and debuffs (right) with timers (minutes above 60s, seconds below, red under 10s),

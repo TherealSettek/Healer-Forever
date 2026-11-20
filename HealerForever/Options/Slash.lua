@@ -16,10 +16,11 @@ ns.SLASH_COMMANDS = {
     { cmd = "/hf copyaccount", desc = "Copy the account-wide settings into this character (asks to confirm)" },
     { cmd = "/hf raid [auto|party|raid]", help = "/hf raid", desc = "Show which layout is active and why, or set the layout switching (auto / always party / always raid)" },
     { cmd = "/hf raid preview [10|20|25|40|off]", help = "/hf raid preview", desc = "Show a fake full raid at your raid position to try the raid options (not clickable, turns off in combat)" },
-    { cmd = "/hf debug buffs", help = "/hf debug buffs | auras | click [raidN] | click watch | raid | clear", desc = "Explain why each buff button is shown or hidden" },
+    { cmd = "/hf debug buffs", help = "/hf debug buffs | auras | click [raidN] | click watch | raid | threat | clear", desc = "Explain why each buff button is shown or hidden" },
     { cmd = "/hf debug auras", hidden = true, desc = "Show the aura path and what the game returned per unit" },
     { cmd = "/hf debug click", hidden = true, desc = "Show the click-casting state of your bar (add raidN for a raid bar, e.g. raid5)" },
     { cmd = "/hf debug click watch", hidden = true, desc = "Print the click state on every modifier change" },
+    { cmd = "/hf debug threat", hidden = true, desc = "Show what the game returns for threat per member and whether each strip is shown" },
     { cmd = "/hf debug raid", hidden = true, desc = "Show the raid layout state: active layout and reason, buttons, cells and aliases" },
     { cmd = "/hf debug clear", hidden = true, desc = "Clear the stored debug output" },
     { cmd = "/hf copy", desc = "Open a window with the last debug output and errors to copy" },
@@ -182,12 +183,14 @@ SlashCmdList["HEALERFOREVER"] = function(msg)
             ns.RunDebug("click " .. token, function() ns.UnitFrames:DebugClick(token) end)
         elseif sub == "raid" then
             ns.RunDebug("raid", function() ns.RaidFrames:Debug() end)
+        elseif sub == "threat" then
+            ns.RunDebug("threat", function() ns.UnitFrames:DebugThreat() end)
         elseif sub == "click" then
             ns.RunDebug("click", function() ns.UnitFrames:DebugClick("player") end)
         elseif sub == "buffs" then
             ns.RunDebug("buffs", function() ns.BuffButtons:Debug() end)
         else
-            ns:Print("/hf debug buffs | auras | click [raidN] | click watch | raid | clear   (add 'copy' to open the copy window)")
+            ns:Print("/hf debug buffs | auras | click [raidN] | click watch | raid | threat | clear   (add 'copy' to open the copy window)")
             ran = false
         end
         if ran then

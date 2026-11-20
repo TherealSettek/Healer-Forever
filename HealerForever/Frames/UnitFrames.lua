@@ -28,6 +28,28 @@ local TARGET_GLOW = { r = 1, g = 0.95, b = 0.6 }
 local RANGE_ALPHA = 0.45
 local GREY = { 0.45, 0.45, 0.45 }
 
+-- Threat strip colours per UnitThreatSituation level (1 yellow, 2 orange, 3 red). Read once at load from the game's
+-- GetThreatStatusColor (never with a secret value); fixed fallbacks when it is missing or returns something odd.
+local THREAT_COLORS = { { 1, 1, 0.47 }, { 1, 0.6, 0 }, { 1, 0, 0 } }
+if GetThreatStatusColor then
+    for level = 1, 3 do
+        local ok, r, g, b = pcall(GetThreatStatusColor, level)
+        if ok and not issecret(r) and not issecret(g) and not issecret(b)
+            and type(r) == "number" and type(g) == "number" and type(b) == "number" then
+            THREAT_COLORS[level] = { r, g, b }
+        end
+    end
+end
+UF.THREAT_COLORS = THREAT_COLORS
+-- Level 0 (in the fight, less threat than the tank) is green and only drawn with frames.threatBarShowSafe. Fixed
+-- colour: GetThreatStatusColor(0) is grey.
+local THREAT_SAFE_COLOR = { 0.25, 0.8, 0.3 }
+UF.THREAT_SAFE_COLOR = THREAT_SAFE_COLOR
+-- last readable threat level per button (side table: nothing is written on the buttons themselves). nil = not on any
+-- threat table (never drawn), 0 = in the fight below the tank, 1-3 = yellow / orange / red.
+local threatLevel = setmetatable({}, { __mode = "k" })
+UF.threatLevel = threatLevel
+
 UF.MEMBER_UNITS = MEMBER_UNITS
 UF.PET_UNITS = PET_UNITS
 
@@ -301,6 +323,7 @@ function UF:UpdateState(button)
     local previous = button.state
     button.state = state
     if state == previous then return end
+    UF:RefreshThreatStrip(button)
 
     local dimmed = state ~= "alive"
     button.auraRow:SetAlpha(dimmed and 0.35 or 1)
@@ -443,6 +466,10 @@ function UF:ApplyRangeVisuals(button)
     local dim = range.dim / 100
     button.health:SetAlpha(faded and dim or 1)
     if button.power then button.power:SetAlpha(faded and dim or 1) end
+    if button.threatStrip then
+        button.threatStrip:SetAlpha(faded and dim or 1)
+        button.threatEdge:SetAlpha(faded and dim or 1)
+    end
 
     -- "secret" = the game will not tell us whether the unit is in range: the dashes, badge and green edge are
     -- shown here and their alpha is driven by the secret boolean in ApplySecretRange (no truth test on it)
@@ -487,6 +514,7 @@ function UF:ApplyRangeVisuals(button)
     UF:ApplyBorderColor(button)
     applyHealthColor(button)
     UF:UpdateHealthText(button)
+    UF:RefreshThreatStrip(button)
 end
 
 -- Drives the range visuals from a secret boolean using widget APIs that accept it:
@@ -506,6 +534,8 @@ local function applySecretRange(button, secretInRange)
     button:SetAlpha(1)
     drive(button.health, 1, dim)
     drive(button.power, 1, dim)
+    drive(button.threatStrip, 1, dim)
+    drive(button.threatEdge, 1, dim)
     drive(button.badge, 0, 1)
     drive(button.dashFrame, 0, 1)
     drive(button.edgeGlow, 1, 0)
@@ -551,13 +581,74 @@ function UF:UpdateTargetHighlight(button)
     UF:ApplyBorderColor(button)
 end
 
--- Aggro (red border). The threat situation may be secret in combat: then the last known state is kept.
+-- Aggro (red border) and the threat strip. The threat situation may be secret in combat: then the last known state
+-- is kept (border and strip alike); the secret value is never compared or stored.
 function UF:UpdateThreat(button)
     if not UnitThreatSituation then return end
     local status = UnitThreatSituation(button.unit)
-    if issecret(status) then return end
+    if issecret(status) then
+        UF:RefreshThreatStrip(button)
+        return
+    end
     button.aggro = status ~= nil and status >= 2
+    threatLevel[button] = type(status) == "number" and status or nil
     UF:ApplyBorderColor(button)
+    UF:RefreshThreatStrip(button)
+end
+
+-- Is the player fighting? Own combat state only (PLAYER_REGEN_DISABLED / ENABLED, InCombatLockdown), never secret.
+function UF.PlayerFighting()
+    return UF.fighting or ns.InCombat()
+end
+
+-- Shows / colours the threat strip of one member button from the last readable level. Only plain textures are
+-- touched (Show / Hide / SetVertexColor), which is allowed in combat. Nothing to do while the strip doesn't exist
+-- (the option was never turned on) or the current layout doesn't reserve its space yet (turned on in combat).
+function UF:RefreshThreatStrip(button)
+    local strip = button.threatStrip
+    if not strip then return end
+    local f = ns.db.frames
+    local level = threatLevel[button]
+    local color = THREAT_COLORS[level or 0]
+    -- green = safe: below the tank (0), or no threat at all (nil) while you are fighting (owner choice 2026-11-20:
+    -- getting on a threat list can take a few seconds, so the frame is green from the pull on)
+    if f.threatBarShowSafe and (level == 0 or (level == nil and UF.PlayerFighting())) then color = THREAT_SAFE_COLOR end
+    local show = UF.threatReserved and f.showThreatBar and not button.isPet and color ~= nil
+        and button.state == "alive" and button.rangeState ~= "hidden"
+        and (not f.threatBarOnlyCombat or UF.PlayerFighting()) and true or false
+    if show then strip:SetVertexColor(color[1], color[2], color[3], 1) end
+    strip:SetShown(show)
+    button.threatEdge:SetShown(show)
+end
+
+-- /hf debug threat: what the game returns per member right now and why each strip is shown or hidden.
+function UF:DebugThreat()
+    local f = ns.db.frames
+    ns:Print("threat debug (combat: " .. tostring(ns.InCombat()) .. ", fighting: " .. tostring(UF.PlayerFighting() and true or false)
+        .. ", bar " .. tostring(f.showThreatBar) .. ", green " .. tostring(f.threatBarShowSafe) .. ", only in combat "
+        .. tostring(f.threatBarOnlyCombat) .. ", space reserved " .. tostring(UF.threatReserved and true or false) .. ")")
+    for _, button in ipairs(UF.buttons) do
+        if not button.isPet and button.unit and ns.Exists(button.unit) then
+            local raw = "n/a"
+            if UnitThreatSituation then
+                local ok, status = pcall(UnitThreatSituation, button.unit)
+                if not ok then raw = "error"
+                elseif issecret(status) then raw = "SECRET"
+                elseif status == nil then raw = "nil"
+                else raw = tostring(status) end
+            end
+            local strip = button.threatStrip
+            ns:Print(string.format("  %s: game=%s stored=%s state=%s range=%s strip=%s", button.unit, raw,
+                tostring(threatLevel[button]), tostring(button.state), tostring(button.rangeState),
+                strip and (strip:IsShown() and "shown" or "hidden") or "none"))
+        end
+    end
+end
+
+function UF:RefreshAllThreatStrips()
+    for _, button in ipairs(UF.buttons) do
+        if button.threatStrip then UF:RefreshThreatStrip(button) end
+    end
 end
 
 local ROLE_ATLAS = { TANK = "roleicon-tiny-tank", HEALER = "roleicon-tiny-healer", DAMAGER = "roleicon-tiny-dps" }
@@ -863,6 +954,41 @@ end
 -- The original party frame look (no tile box, no group panel); only the health and power bars get a border.
 
 local PAD_MIN = 1
+local THREAT_GAP = 1   -- free pixels between the strip's black edge and the health bar border
+
+-- Height reserved above the health bar for the threat strip: strip + its 1 px black edge (top and bottom) + a gap
+-- clear of the bar border. 0 while the option is off, so the frames are exactly as before.
+function UF.ThreatReserve(f, spec)
+    if not f.showThreatBar then return 0 end
+    return f.threatBarHeight + 2 + THREAT_GAP + spec.outset
+end
+
+-- The strip: two plain textures on the member button (a black edge and the coloured strip), created the first time
+-- the option is on (out of combat, from Layout). Textures never take the mouse and are not protected.
+local function ensureThreatStrip(button)
+    if button.threatStrip then return end
+    local edge = button:CreateTexture(nil, "ARTWORK", nil, 1)
+    edge:SetTexture(WHITE)
+    edge:SetVertexColor(0, 0, 0, 1)
+    edge:Hide()
+    local strip = button:CreateTexture(nil, "ARTWORK", nil, 2)
+    strip:SetTexture(BAR_TEXTURE)
+    strip:Hide()
+    button.threatEdge, button.threatStrip = edge, strip
+end
+
+local function placeThreatStrip(button, spec, innerW)
+    ensureThreatStrip(button)
+    local h = ns.db.frames.threatBarHeight
+    local o = spec.outset
+    local edge, strip = button.threatEdge, button.threatStrip
+    edge:ClearAllPoints()
+    edge:SetPoint("BOTTOMLEFT", button.health, "TOPLEFT", -o, o + THREAT_GAP)
+    edge:SetSize(innerW + o * 2, h + 2)
+    strip:ClearAllPoints()
+    strip:SetPoint("BOTTOMLEFT", edge, "BOTTOMLEFT", 1, 1)
+    strip:SetSize(innerW + o * 2 - 2, h)
+end
 
 local function metrics()
     local f = ns.db.frames
@@ -870,9 +996,10 @@ local function metrics()
     local spec = Util.BorderSpec(border.style, border.width)
     local margin = spec.outset + PAD_MIN + 1
     local powerH = f.showPower and POWER_HEIGHT or 0
-    local frameH = margin * 2 + f.height + powerH
+    local threatH = UF.ThreatReserve(f, spec)
+    local frameH = margin * 2 + f.height + powerH + threatH
     local petH = margin * 2 + max(12, floor(f.height * 0.55))
-    return border, spec, margin, powerH, frameH, petH
+    return border, spec, margin, powerH, frameH, petH, threatH
 end
 
 function UF:GetSizes()
@@ -940,8 +1067,19 @@ function UF:StyleButton(button, ctx)
     local healthH = pet and (ctx.h - margin * 2) or ns.db.frames.height
 
     button.health:ClearAllPoints()
-    button.health:SetPoint("TOPLEFT", margin, -margin)
+    local threatH = (not pet and ctx.threatH) or 0
+    if threatH > 0 then
+        button.health:SetPoint("TOPLEFT", margin, -(margin + threatH))
+    else
+        button.health:SetPoint("TOPLEFT", margin, -margin)
+    end
     button.health:SetSize(innerW, healthH)
+    if threatH > 0 then
+        placeThreatStrip(button, spec, innerW)
+    elseif button.threatStrip then
+        button.threatStrip:Hide()
+        button.threatEdge:Hide()
+    end
     button.pred:SetWidth(innerW)
     styleBorder(button, button.health, spec)
     if button.power then
@@ -1037,7 +1175,7 @@ function UF:Layout(silent)
         return
     end
     local f = ns.db.frames
-    local _, spec, margin, powerH, frameH, petH = metrics()
+    local _, spec, margin, powerH, frameH, petH, threatH = metrics()
     local w = f.width
     local vertical = f.layout == "vertical"
     local petW = vertical and PET_VERTICAL_WIDTH or w
@@ -1052,7 +1190,7 @@ function UF:Layout(silent)
         local pet = UF.byUnit[PET_UNITS[unit]]
         member:ClearAllPoints()
         pet:ClearAllPoints()
-        UF:StyleButton(member, { spec = spec, margin = margin, powerH = powerH, w = w, h = frameH })
+        UF:StyleButton(member, { spec = spec, margin = margin, powerH = powerH, w = w, h = frameH, threatH = threatH })
         UF:StyleButton(pet, { spec = spec, margin = margin, powerH = 0, w = petW, h = petH, pet = true })
         UF:PlaceZones(member, descriptors)
         ns.Auras.Prepare(member)
@@ -1090,9 +1228,11 @@ function UF:Layout(silent)
             pet:Hide()
         end
     end
+    UF.threatReserved = threatH > 0 or nil
     UF:ApplyPoint()
     UF:ApplyLock()
     UF:UpdateEverything()
+    UF:RefreshAllThreatStrips()
     ns:Fire("FRAMES_LAID_OUT")
 end
 
@@ -1377,6 +1517,14 @@ function UF:Init()
         if UF.debugClickWatch then ns.RunDebug("click watch", function() UF:DebugClick("player") end) end
         if UF.hovered then UF:ShowTooltip(UF.hovered) end
     end)
+    ns:RegisterEvent("PLAYER_REGEN_DISABLED", function()
+        UF.fighting = true
+        UF:RefreshAllThreatStrips()
+    end)
+    ns:RegisterEvent("PLAYER_REGEN_ENABLED", function()
+        UF.fighting = nil
+        UF:RefreshAllThreatStrips()
+    end)
     ns:On("CONFIG_CHANGED", function(group)
         if not UF.anchor then return end
         if group == "roles" then
@@ -1385,6 +1533,8 @@ function UF:Init()
         end
         if group == "presets" or group == "bindings" or group == "pins" or group == "minimap" then return end
         if group == "raid" then return end
+        -- visibility ("Only in combat", turning the strip off) applies at once, also in combat; the space follows the layout
+        UF:RefreshAllThreatStrips()
         UF:Layout()
     end)
 end
